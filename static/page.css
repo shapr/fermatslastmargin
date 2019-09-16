@@ -1,0 +1,23 @@
+#container{
+  position:relative;
+}
+#container > input{
+  position:absolute;
+  top:10px;left:10px;
+  opacity:0.2;
+}
+#container > input:focus{
+  /* when you click into text field */
+  opacity:7.0;
+}
+
+
+#container > textarea{
+  position:absolute;
+  top:10px;left:10px;
+  opacity:0.2;
+}
+#container > textarea:focus{
+  /* when you click into text field */
+  opacity:7.0;
+}
