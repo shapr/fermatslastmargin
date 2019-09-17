@@ -35,10 +35,8 @@ main = do
          --          html "HI THERE THIS GONNA WORK SOON"
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
+                  -- papers <- ??
                   html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable papers)
-         -- get "/:word" $ do
-         --               beam <- param "word"
-         --               html $ mconcat ["<html><h1>This is page number ", beam, "</h1></html>"]
          -- post "/jsonpaper" $
          --      do (p :: Paper) <- jsonData
          --         -- doi :: T.Text <- param "doi"
