@@ -6,6 +6,7 @@ import           Control.Monad.IO.Class               (liftIO)
 import           Control.Monad.Logger                 (LoggingT, runNoLoggingT,
                                                        runStdoutLoggingT)
 import           Control.Monad.Trans.Resource
+import qualified Data.Map.Strict                      as M
 import           Data.Monoid                          (mconcat)
 import qualified Data.Text                            as T
 import qualified Data.Text.IO                         as TIO
@@ -14,20 +15,25 @@ import           Data.Time
 import           Lucid                                (renderText)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
+import           System.Directory                     (getHomeDirectory)
+import           System.FilePath                      ((</>))
 import           System.IO                            (stdout)
 import           Web.Scotty
 
 import           Lib
 import qualified Lib
 
+localUserDir  = ".fermatslastmargin/localuser"
+
 main :: IO ()
 main = do
   -- configContents <- TIO.readFile "~/.fermatslastmargin/config"
 
   -- read state here
-  userState <- readState "~/.fermatslastmargin/localuser"
-  friendState <- readState
-  print "userState is " <> show userState
+  userHomeDir <- getHomeDirectory
+  userState <- readState (userHomeDir </> ".fermatslastmargin/localuser")
+  -- friendState <- readState -- XXX
+  -- print $ "userState is " <> show userState
   scotty 3000 $ do
          middleware $ staticPolicy (noDots >-> addBase "static")
          middleware logStdoutDev
@@ -35,20 +41,22 @@ main = do
          --          html "HI THERE THIS GONNA WORK SOON"
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
+                  userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
                   -- papers <- ??
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable papers)
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable (M.elems userState))
          -- post "/jsonpaper" $
          --      do (p :: Paper) <- jsonData
          --         -- doi :: T.Text <- param "doi"
          --         pid <- liftIO $ runDb $ insert p
          --         html $ TL.pack $ show pid
-         -- post "/paper" $ do
-         --          ps <- params
-         --          let maybePaper = mbP ps
-         --          case maybePaper of Just thePaper -> do
-         --                               _ <- liftIO $ runDb $ insert thePaper
-         --                               redirect "/"
-         --                             Nothing -> raise "something's broken"
+         post "/paper" $ do
+                  ps <- params
+                  let maybePaper = mbP ps
+                  case maybePaper of Just thePaper -> do
+                                       liftIO $ writeState (userHomeDir </> localUserDir) $ M.insert (uid thePaper) thePaper userState
+                                       liftIO $ print "should have worked now!"
+                                       redirect "/"
+                                     Nothing -> raise "something's broken"
 
          -- post "/annotate/:uid/:pagenum" $
          --      do (jd :: Annotation) <- jsonData
