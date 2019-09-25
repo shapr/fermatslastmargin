@@ -122,6 +122,10 @@ filterFile = filterM doesFileExist
 getContent = content
 getPaperId = uid
 
+maybeGetPage pageNum anns = lookup pageNum annPairs
+    where annPairs = zip (pageNumber <$> anns) (content <$> anns)
+
+
 data GithubConfig = GC {
       username :: Text
     , oauth    :: Text

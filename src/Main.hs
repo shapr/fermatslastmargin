@@ -31,24 +31,19 @@ main = do
 
   -- read state here
   userHomeDir <- getHomeDirectory
-  userState <- readState (userHomeDir </> ".fermatslastmargin/localuser")
+  let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
+  userState <- readState fullUserDir -- I don't think I need this?
   -- friendState <- readState -- XXX
   -- print $ "userState is " <> show userState
   scotty 3000 $ do
          middleware $ staticPolicy (noDots >-> addBase "static")
          middleware logStdoutDev
-         -- get "/" $ do
-         --          html "HI THERE THIS GONNA WORK SOON"
+
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
                   -- papers <- ??
                   html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable (M.elems userState))
-         -- post "/jsonpaper" $
-         --      do (p :: Paper) <- jsonData
-         --         -- doi :: T.Text <- param "doi"
-         --         pid <- liftIO $ runDb $ insert p
-         --         html $ TL.pack $ show pid
          post "/paper" $ do
                   ps <- params
                   let maybePaper = mbP ps
@@ -57,6 +52,21 @@ main = do
                                        liftIO $ print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
+         get "/annotate/:uid/:pagenum" $ do -- smart thing to do is dump 'em all into the browser and load from javascript
+                  pagenum <- param "pagenum"
+                  uid <- param "uid"
+                  userState <- liftIO $ readState fullUserDir
+                  let mbPaper = M.lookup uid userState
+                  final <- case mbPaper of
+                             Nothing -> raise "That Paper does not exist"
+                             Just p  -> pure $ maybe "" id (maybeGetPage pagenum (notes p))
+                  json final
+
+         -- post "/jsonpaper" $
+         --      do (p :: Paper) <- jsonData
+         --         -- doi :: T.Text <- param "doi"
+         --         pid <- liftIO $ runDb $ insert p
+         --         html $ TL.pack $ show pid
 
          -- post "/annotate/:uid/:pagenum" $
          --      do (jd :: Annotation) <- jsonData
@@ -71,11 +81,3 @@ main = do
          --         html $ TL.pack $ show jd
 
          --         redirect $ "/index.html?" <> pagenum
-         -- get "/annotate/:uid/:pagenum" $ do -- smart thing to do is dump 'em all into the browser and load from javascript
-         --     pagenum <- param "pagenum"
-         --     uid <- param "uid"
-         --     paper <- liftIO $ runDb $ selectFirst [PaperDoi ==. uid] []
-         --     -- jd <- liftIO $ runDb $ selectFirst [AnnotationPaper ==. uid, AnnotationPageNumber ==. pagenum] []
-         --     final <- case paper of Nothing -> raise "That Paper does not exist"
-         --                            Just k -> liftIO $ runDb $ selectFirst [AnnotationPaper ==. getPKey k, AnnotationPageNumber ==. pagenum] [] -- ARGH SO UGLY
-         --     json final
