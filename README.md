@@ -9,3 +9,11 @@ cabal run
 Then point your web browser to `localhost:3000`
 
 All of the annotations are saved in a local directory `~/.fermatslastmargin/localuser` and your friend's annotations are saved in `~/.fermatslastmargin/friends/<github_name_of_friend>`
+
+# Features
+- [X] add paper info
+- [X] read/write annotations
+- [ ] download paper (as PDF) when given unique ID (DOI for now)
+- [ ] render PDF to page images
+- [ ] push to github repo
+- [ ] pull from friends' github repo

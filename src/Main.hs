@@ -52,6 +52,9 @@ main = do
                                        liftIO $ print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
+         get "/annotate/:uid" $ do
+                  uid <- param "uid"
+                  redirect $ "/index.html?uid=" <> uid <> "&pagenum=1"
          get "/annotate/:uid/:pagenum" $ do -- smart thing to do is dump 'em all into the browser and load from javascript
                   pagenum <- param "pagenum"
                   uid <- param "uid"
@@ -59,25 +62,27 @@ main = do
                   let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
-                             Just p  -> pure $ maybe "" id (maybeGetPage pagenum (notes p))
+                             Just p  -> pure $ maybe (Annotation "" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json final
+
+         post "/annotate/:uid/:pagenum" $ do
+                  (jd :: Annotation) <- jsonData
+                  (uid :: T.Text) <- param "uid"
+                  pagenum <- param "pagenum"
+                  userState <- liftIO $ readState fullUserDir
+                  let mbPaper = M.lookup uid userState
+                  final <- case mbPaper of
+                             Nothing -> raise "That Paper does not exist"
+                             Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
+
+                 -- upsertAnnotation jd
+                  json final
+                  html $ TL.pack $ show jd
+
+                  redirect $ "/index.html?" <> pagenum
 
          -- post "/jsonpaper" $
          --      do (p :: Paper) <- jsonData
          --         -- doi :: T.Text <- param "doi"
          --         pid <- liftIO $ runDb $ insert p
          --         html $ TL.pack $ show pid
-
-         -- post "/annotate/:uid/:pagenum" $
-         --      do (jd :: Annotation) <- jsonData
-         --         (uid :: T.Text) <- param "uid"
-         --         pagenum <- param "pagenum"
-         --         paper <- liftIO $ runDb $ selectFirst [PaperDoi ==. uid] [] -- Maybe Paper or some such
-         --         -- let k = case paper of Nothing -> raise "That Paper does not exist"
-         --         --                       Just k -> getPKey k XXX stopped here XXX
-         --         -- trying to fake up an Annotation since I don't have an easy way to stuff the db id into the form itself
-         --         -- let uglyhack = jd {
-         --         liftIO $ runDb $ upsert jd [AnnotationContent =. getContent jd]
-         --         html $ TL.pack $ show jd
-
-         --         redirect $ "/index.html?" <> pagenum

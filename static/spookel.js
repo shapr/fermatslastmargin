@@ -61,7 +61,7 @@ document.addEventListener('keydown', (e) => {
 	    // submit, check for write, if success then redirect to this page
 	    if (content.value.length > 0) { // check for empty textarea, this might work?
 		// submit to server
-		$.post("/annotate/" + uid + "/" + pagenum, JSON.stringify({ paper: 1, pageNumber: pagenum, content: content.value }));
+		$.post("/annotate/" + uid + "/" + pagenum, JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
 		content.blur();
 		// display saved, and drop focus
 	    } else { alert("not saving empty annotation"); }

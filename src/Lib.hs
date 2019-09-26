@@ -22,7 +22,7 @@ import           Data.Aeson         (FromJSON, ToJSON, decodeStrict)
 import           Data.Aeson.Text    (encodeToLazyText)
 import qualified Data.ByteString    as BS
 import qualified Data.Map.Strict    as M
-import           Data.Maybe         (catMaybes)
+import           Data.Maybe         (catMaybes, isJust)
 import           Data.String        (IsString)
 import           Data.Text          (Text, pack)
 import qualified Data.Text          as T
@@ -58,6 +58,20 @@ data Annotation = Annotation {
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 -- read and save state
+maybeGetPage pageNum anns = lookup pageNum annPairs
+    where annPairs = zip (pageNumber <$> anns) (content <$> anns)
+
+maybeGetAnnotation pageNum anns = lookup pageNum annPairs
+    where annPairs = zip (pageNumber <$> anns) anns
+
+upsertAnnotation :: Annotation -> [Annotation] -> [Annotation]
+upsertAnnotation a@(Annotation c pnum puid) oldAnns = if doesExist then replaceAnnotation pnum c oldAnns else a:oldAnns
+    where doesExist = isJust $ maybeGetPage pnum oldAnns
+
+
+replaceAnnotation :: Int -> Text -> [Annotation] -> [Annotation]
+replaceAnnotation i content [] = []
+replaceAnnotation i content (a@(Annotation c p u):anns) = if p == i then (Annotation content p u) : anns else a : replaceAnnotation i content anns
 
 -- | read the names of the directories in the config directory
 readState :: FilePath -> IO FLMState
@@ -122,10 +136,6 @@ filterFile = filterM doesFileExist
 getContent = content
 getPaperId = uid
 
-maybeGetPage pageNum anns = lookup pageNum annPairs
-    where annPairs = zip (pageNumber <$> anns) (content <$> anns)
-
-
 data GithubConfig = GC {
       username :: Text
     , oauth    :: Text
@@ -171,11 +181,13 @@ paperstable rows =
 onepaper :: Monad m => Paper -> HtmlT m ()
 onepaper r = tr_ $
   do -- td_ . toHtml
-     tdit title
+     td_ $ do
+       a_ [href_ ("/annotate/" <> uid r)] (toHtml $ title r)
      tdit (T.pack . show . published :: Paper -> Text)
      tdit uid
      tdit author
           where tdit f = td_ . toHtml $ f r
+                ruid = uid r
 
 -- ?doi=10.25&title=this+is+a+title&author=Shae+Erisson&pubdate=2019-01-01
 mbP :: [Param] -> Maybe Paper
