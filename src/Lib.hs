@@ -17,25 +17,27 @@ module Lib where
 import           Config
 import           Config.Schema
 import           Config.Schema.Load
-import           Control.Monad      (filterM, join, liftM)
-import           Data.Aeson         (FromJSON, ToJSON, decodeStrict)
-import           Data.Aeson.Text    (encodeToLazyText)
-import qualified Data.ByteString    as BS
-import qualified Data.Map.Strict    as M
-import           Data.Maybe         (catMaybes, isJust)
-import           Data.String        (IsString)
-import           Data.Text          (Text, pack)
-import qualified Data.Text          as T
-import qualified Data.Text.Lazy     as TL
-import           Data.Text.Lazy.IO  as I
-import           Data.Time.Calendar (Day)
-import           Data.Time.Clock    (UTCTime)
+import           Control.Monad          (filterM, join, liftM)
+import           Data.Aeson             (FromJSON, ToJSON, decodeStrict)
+import           Data.Aeson.Text        (encodeToLazyText)
+import qualified Data.ByteString        as BS
+import qualified Data.Map.Strict        as M
+import           Data.Maybe             (catMaybes, isJust)
+import           Data.String            (IsString)
+import           Data.Text              (Text, pack)
+import qualified Data.Text              as T
+import           Data.Text.Encoding     as TE
+import qualified Data.Text.Lazy         as TL
+import           Data.Text.Lazy.IO      as I
+import           Data.Time.Calendar     (Day)
+import           Data.Time.Clock        (UTCTime)
 import           GHC.Generics
 import           Lucid
+import qualified Network.HTTP.Types.URI as HTTP
 import           System.Directory
-import           System.FilePath    (dropFileName, splitDirectories, (</>))
+import           System.FilePath        (dropFileName, splitDirectories, (</>))
 import           Text.Read
-import           Web.Scotty         (Param)
+import           Web.Scotty             (Param)
 
 -- | Map from DOI to Paper
 type FLMState = M.Map Text Paper -- local user state
@@ -103,14 +105,19 @@ readPaper fp = do
 -- | forward slash is not allowed in any filenames, so we substitute underscore _
 writePaper :: FilePath -> Paper -> IO ()
 writePaper fp p = do
-  let cleanDirName = T.map sanitizeUid (uid p)
+  let cleanDirName = T.map escapeUid (uid p)
       cleanFullDir = fp </> T.unpack cleanDirName
   _ <- createDirectoryIfMissing True cleanFullDir
   I.writeFile (cleanFullDir </> "paper.json") (encodeToLazyText p)
 
-sanitizeUid :: Char -> Char
-sanitizeUid '/' = '_' -- TODO this gonna be a problem if a UID has an underscore TODO
-sanitizeUid x   = x
+-- forget this, I'll url-encode instead, that should always work!
+escapeUid :: Char -> Char
+escapeUid '/' = '_' -- TODO this gonna be a problem if a UID has an underscore TODO
+escapeUid x   = x
+
+unescapeUid :: Char -> Char
+unescapeUid '_' = '/'
+unescapeUid x   = x
 
 -- | given the friends dir, load FLM state from each of those dirs
 readFriendState :: FilePath -> IO FriendState
@@ -182,7 +189,8 @@ onepaper :: Monad m => Paper -> HtmlT m ()
 onepaper r = tr_ $
   do -- td_ . toHtml
      td_ $ do
-       a_ [href_ ("/annotate/" <> uid r)] (toHtml $ title r)
+       -- a_ [href_ ("/annotate/" <> (urlEncode $ uid r))] (toHtml $ title r)
+       a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> (urlEncode $ uid r))] (toHtml $ title r)
      tdit (T.pack . show . published :: Paper -> Text)
      tdit uid
      tdit author
@@ -209,3 +217,11 @@ mbP' ps = Paper
           <*> Just []
     where upl = flip lookup ps
           supl a = TL.toStrict <$> upl a
+
+
+-- sane utils
+
+urlEncode :: Text -> Text
+urlEncode = TE.decodeUtf8 . HTTP.urlEncode False . TE.encodeUtf8
+urlDecode :: Text -> Text
+urlDecode = TE.decodeUtf8 . HTTP.urlDecode False . TE.encodeUtf8

@@ -4,10 +4,11 @@ if (pagenum < 1) {
     pagenum = 1;
 }
 
-var uid = "todo";
+// var uid = "todo";
+var uid = params.get("uid") || "todo";
 
 function setAnnotation(a) {
-    document.getElementById("content").value = a["content"] || ""; // might even work, who knows?
+    document.getElementById("content").value = a["content"] || ""; // still looks ugly to me
 }
 
 // from https://stackoverflow.com/a/32147146/39683
@@ -31,11 +32,11 @@ function hereagain() {
 }
 
 function buildup () {
-    return hereagain() + "?pagenum=" + (pagenum + 1) + "&uid=" + uid;
+    return hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" + uid;
 
 }
 function builddown () {
-    return hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" + uid;
+    return hereagain() + "?pagenum=" + (pagenum + 1) + "&uid=" + uid;
 }
 
 
@@ -49,7 +50,7 @@ document.addEventListener('keydown', (e) => {
 	location.href = builddown();
     }
     if (e.key == "PageUp") {
-	if (pagenum >= 1) { location.href = buildup(); // hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" uid;
+	if (pagenum <= 1) { location.href = buildup(); // hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" uid;
 			  } else { location.href = hereagain() + "?pagenum=1" + "&uid=" + uid;
 				   // location.href = buildurl();
 				 }
@@ -61,7 +62,8 @@ document.addEventListener('keydown', (e) => {
 	    // submit, check for write, if success then redirect to this page
 	    if (content.value.length > 0) { // check for empty textarea, this might work?
 		// submit to server
-		$.post("/annotate/" + uid + "/" + pagenum, JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
+		// $.post("/annotate/" + uid + "/" + pagenum, JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
+		$.post("/annotate", JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
 		content.blur();
 		// display saved, and drop focus
 	    } else { alert("not saving empty annotation"); }

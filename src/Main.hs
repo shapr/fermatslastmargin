@@ -74,13 +74,20 @@ main = do
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
-
-                 -- upsertAnnotation jd
                   json final
                   html $ TL.pack $ show jd
 
                   redirect $ "/index.html?" <> pagenum
 
+         post "/annotate" $ do
+                  (jd :: Annotation) <- jsonData
+                  userState <- liftIO $ readState fullUserDir
+                  let puid = paperuid jd
+                      mbPaper = M.lookup puid userState
+                  final <- case mbPaper of
+                             Nothing -> raise "That Paper does not exist"
+                             Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
+                  json final
          -- post "/jsonpaper" $
          --      do (p :: Paper) <- jsonData
          --         -- doi :: T.Text <- param "doi"

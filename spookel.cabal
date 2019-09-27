@@ -20,6 +20,7 @@ library
     , containers
     , directory
     , filepath
+    , http-types
     , lucid
     , scotty
     , text
@@ -41,6 +42,7 @@ executable spookel
     , containers
     , directory
     , filepath
+    , http-types
     , lucid
     , monad-logger
     , resourcet
