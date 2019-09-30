@@ -27,22 +27,22 @@ localUserDir  = ".fermatslastmargin/localuser"
 
 main :: IO ()
 main = do
-  -- configContents <- TIO.readFile "~/.fermatslastmargin/config"
-
-  -- read state here
+  -- configContents <- TIO.readFile "~/.fermatslastmargin/config" -- needed once github stuff works
   userHomeDir <- getHomeDirectory
   let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
-  userState <- readState fullUserDir -- I don't think I need this?
+      fullLocalDir = userHomeDir </> ".fermatslastmargin"
+  userState <- readState fullUserDir
   -- friendState <- readState -- XXX
-  -- print $ "userState is " <> show userState
   scotty 3000 $ do
-         middleware $ staticPolicy (noDots >-> addBase "static")
          middleware logStdoutDev
+         middleware $ staticPolicy (noDots >-> addBase "static")
+         middleware $ staticPolicy (noDots >-> addBase (fullLocalDir </> "pageimages"))
 
+         get "/foo%2C" $ html "you got the url encoded option"
+         get "/foo," $ html "you got the NOT YET url encoded option"
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  -- papers <- ??
                   html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable (M.elems userState))
          post "/paper" $ do
                   ps <- params
@@ -88,8 +88,15 @@ main = do
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
                   json final
-         -- post "/jsonpaper" $
-         --      do (p :: Paper) <- jsonData
-         --         -- doi :: T.Text <- param "doi"
-         --         pid <- liftIO $ runDb $ insert p
-         --         html $ TL.pack $ show pid
+         -- didn't see this coming, too bad DOI has forward slash that makes everything a huge pain
+         post "/getannotate" $ do
+                  (jd :: Annotation) <- jsonData
+                  let pagenum = pageNumber jd
+                      puid = paperuid jd
+                  userState <- liftIO $ readState fullUserDir
+                  let puid = paperuid jd
+                      mbPaper = M.lookup puid userState
+                  final <- case mbPaper of
+                            Nothing -> raise "That Paper does not exist"
+                            Just p  -> pure $ maybe (Annotation "" pagenum puid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
+                  json final

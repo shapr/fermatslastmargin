@@ -19,6 +19,7 @@ library
     , config-value
     , containers
     , directory
+    , filemanip
     , filepath
     , http-types
     , lucid
@@ -41,6 +42,7 @@ executable spookel
     , config-value
     , containers
     , directory
+    , filemanip
     , filepath
     , http-types
     , lucid

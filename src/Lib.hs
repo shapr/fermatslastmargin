@@ -36,6 +36,7 @@ import           Lucid
 import qualified Network.HTTP.Types.URI as HTTP
 import           System.Directory
 import           System.FilePath        (dropFileName, splitDirectories, (</>))
+import           System.FilePath.Find   (always, fileName, find, (~~?))
 import           Text.Read
 import           Web.Scotty             (Param)
 
@@ -96,7 +97,8 @@ writeState fp flms = do
 -- | given a directory for a paper, read that json file into a Paper value
 readPaper :: FilePath -> IO (Maybe Paper)
 readPaper fp = do
-  bs <- BS.readFile (fp </> "paper.json")
+  f <- findPaper fp "paper.json"
+  bs <- BS.readFile (head f) -- XXX this gonna be a problem at some point XXX
   pure $ decodeStrict bs -- is this right? do I need this pure? can I concat it with the previous line?
 
 -- | assume the dir given is the *USER* directory where all papers have their own directory
@@ -105,19 +107,9 @@ readPaper fp = do
 -- | forward slash is not allowed in any filenames, so we substitute underscore _
 writePaper :: FilePath -> Paper -> IO ()
 writePaper fp p = do
-  let cleanDirName = T.map escapeUid (uid p)
-      cleanFullDir = fp </> T.unpack cleanDirName
-  _ <- createDirectoryIfMissing True cleanFullDir
-  I.writeFile (cleanFullDir </> "paper.json") (encodeToLazyText p)
-
--- forget this, I'll url-encode instead, that should always work!
-escapeUid :: Char -> Char
-escapeUid '/' = '_' -- TODO this gonna be a problem if a UID has an underscore TODO
-escapeUid x   = x
-
-unescapeUid :: Char -> Char
-unescapeUid '_' = '/'
-unescapeUid x   = x
+  let fullDir = fp </> (T.unpack $ uid p)
+  _ <- createDirectoryIfMissing True fullDir
+  I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
 
 -- | given the friends dir, load FLM state from each of those dirs
 readFriendState :: FilePath -> IO FriendState
@@ -187,10 +179,8 @@ paperstable rows =
 
 onepaper :: Monad m => Paper -> HtmlT m ()
 onepaper r = tr_ $
-  do -- td_ . toHtml
-     td_ $ do
-       -- a_ [href_ ("/annotate/" <> (urlEncode $ uid r))] (toHtml $ title r)
-       a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> (urlEncode $ uid r))] (toHtml $ title r)
+  do td_ $ do
+       a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> uid r)] (toHtml $ title r)
      tdit (T.pack . show . published :: Paper -> Text)
      tdit uid
      tdit author
@@ -218,10 +208,6 @@ mbP' ps = Paper
     where upl = flip lookup ps
           supl a = TL.toStrict <$> upl a
 
-
--- sane utils
-
-urlEncode :: Text -> Text
-urlEncode = TE.decodeUtf8 . HTTP.urlEncode False . TE.encodeUtf8
-urlDecode :: Text -> Text
-urlDecode = TE.decodeUtf8 . HTTP.urlDecode False . TE.encodeUtf8
+-- find file in subdirs
+findPaper :: FilePath -> FilePath -> IO [FilePath]
+findPaper top match = find always (fileName ~~? match) top

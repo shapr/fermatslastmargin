@@ -11,6 +11,11 @@ function setAnnotation(a) {
     document.getElementById("content").value = a["content"] || ""; // still looks ugly to me
 }
 
+function setPageImage(pagenum) {
+    let imgsrc = "/" + uid + "/" + pagenum + '.png';
+    document.getElementById("pageimage").setAttribute("src",imgsrc);
+    return imgsrc;
+}
 // from https://stackoverflow.com/a/32147146/39683
 function setHeight(jq_in){
     jq_in.each(function(index, elem){
@@ -24,7 +29,9 @@ $(document).ready(function(){
     $("#status").val(hereagain());
     $("#pgup").val(pagenum + 1);
     $("#pgdn").val(pagenum - 1 || 1); // gosh that's ugly
-    $.get("/annotate/" + uid + "/" + pagenum, "", setAnnotation, "json");
+    // $.get("/annotate/" + uid + "/" + pagenum, "", setAnnotation, "json"); // now doing POST to load a note, argh!
+    $.post("/getannotate", JSON.stringify({ pageNumber: pagenum, content: "", paperuid: uid }), setAnnotation, "json");
+    setPageImage(pagenum);
 });
 
 function hereagain() {
