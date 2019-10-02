@@ -6,6 +6,8 @@ import           Control.Monad.IO.Class               (liftIO)
 import           Control.Monad.Logger                 (LoggingT, runNoLoggingT,
                                                        runStdoutLoggingT)
 import           Control.Monad.Trans.Resource
+import qualified Data.ByteString.Char8                as BS
+import qualified Data.ByteString.Lazy                 as BSL
 import qualified Data.Map.Strict                      as M
 import           Data.Monoid                          (mconcat)
 import qualified Data.Text                            as T
@@ -15,6 +17,7 @@ import           Data.Time
 import           Lucid                                (renderText)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
+import           Network.Wai.Parse
 import           System.Directory                     (getHomeDirectory)
 import           System.FilePath                      ((</>))
 import           System.IO                            (stdout)
@@ -44,17 +47,24 @@ main = do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
                   html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable (M.elems userState))
+
          post "/paper" $ do
                   ps <- params
+                  fs <- files
+                  let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
                                        liftIO $ writeState (userHomeDir </> localUserDir) $ M.insert (uid thePaper) thePaper userState
+                                       let paperDir = fullUserDir </> (T.unpack $ uid thePaper)
+                                       liftIO $ BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                                        liftIO $ print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
+
          get "/annotate/:uid" $ do
                   uid <- param "uid"
                   redirect $ "/index.html?uid=" <> uid <> "&pagenum=1"
+
          get "/annotate/:uid/:pagenum" $ do -- smart thing to do is dump 'em all into the browser and load from javascript
                   pagenum <- param "pagenum"
                   uid <- param "uid"

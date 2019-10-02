@@ -105,11 +105,12 @@ readPaper fp = do
 -- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
 -- | or perhaps "~/.fermatslastmargin/friends/pigworker" "10.4204/EPTCS.275.6"
 -- | forward slash is not allowed in any filenames, so we substitute underscore _
-writePaper :: FilePath -> Paper -> IO ()
+writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
   let fullDir = fp </> (T.unpack $ uid p)
   _ <- createDirectoryIfMissing True fullDir
   I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
+  return fullDir
 
 -- | given the friends dir, load FLM state from each of those dirs
 readFriendState :: FilePath -> IO FriendState
@@ -159,7 +160,7 @@ pageTemplate title content = do
 
 papersadd :: Monad m => Day -> HtmlT m ()
 papersadd nowTime = do
-  form_ [action_ "/paper", method_ "post"] $ do
+  form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $ do
               label_ "DOI"
               input_ [type_ "text", name_ "doi"]
               label_ "Title"
@@ -168,6 +169,8 @@ papersadd nowTime = do
               input_ [type_ "text", name_ "author"]
               label_ "Publication Date"
               input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
+              label_ "PDF of file"
+              input_ [type_ "file", name_ "uploadedfile"]
               input_ [type_ "submit"]
 
 paperstable :: Monad m => [Paper] -> HtmlT m ()
@@ -211,3 +214,6 @@ mbP' ps = Paper
 -- find file in subdirs
 findPaper :: FilePath -> FilePath -> IO [FilePath]
 findPaper top match = find always (fileName ~~? match) top
+
+-- random useful thing
+third (a,b,c) = c
