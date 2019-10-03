@@ -146,7 +146,6 @@ githubSpec = sectionsSpec "github" $
             oauth <- reqSection "oauth" "OAuth Token for GitHub"
             pure GC{..}
 
-
 -- html page stuff
 
 pageTemplate :: Monad m => Text -> HtmlT m a -> HtmlT m a
@@ -217,10 +216,7 @@ findPaper top match = find always (fileName ~~? match) top
 -- random useful thing
 third (a,b,c) = c
 
-
 -- convert a file into static page images
--- XXX TODO
-
 renderPageImages :: FilePath -> IO (ExitCode, Text)
 renderPageImages fp = do
   (Nothing, Nothing, Just errh, pid) <- createProcess (proc "pdftocairo" ["-png", "paper.pdf", "page"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
