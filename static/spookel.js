@@ -12,7 +12,7 @@ function setAnnotation(a) {
 }
 
 function setPageImage(pagenum) {
-    let imgsrc = "/" + uid + "/" + pagenum + '.png';
+    let imgsrc = "/" + uid + "/page-" + pagenum + '.png';
     document.getElementById("pageimage").setAttribute("src",imgsrc);
     return imgsrc;
 }

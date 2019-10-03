@@ -3,8 +3,6 @@
 module Main where
 
 import           Control.Monad.IO.Class               (liftIO)
-import           Control.Monad.Logger                 (LoggingT, runNoLoggingT,
-                                                       runStdoutLoggingT)
 import           Control.Monad.Trans.Resource
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL

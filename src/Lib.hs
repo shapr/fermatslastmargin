@@ -17,28 +17,26 @@ module Lib where
 import           Config
 import           Config.Schema
 import           Config.Schema.Load
-import           Control.Monad          (filterM, join, liftM)
-import           Data.Aeson             (FromJSON, ToJSON, decodeStrict)
-import           Data.Aeson.Text        (encodeToLazyText)
-import qualified Data.ByteString        as BS
-import qualified Data.Map.Strict        as M
-import           Data.Maybe             (catMaybes, isJust)
-import           Data.String            (IsString)
-import           Data.Text              (Text, pack)
-import qualified Data.Text              as T
-import           Data.Text.Encoding     as TE
-import qualified Data.Text.Lazy         as TL
-import           Data.Text.Lazy.IO      as I
-import           Data.Time.Calendar     (Day)
-import           Data.Time.Clock        (UTCTime)
+import           Control.Monad        (filterM, join)
+import           Data.Aeson           (FromJSON, ToJSON, decodeStrict)
+import           Data.Aeson.Text      (encodeToLazyText)
+import qualified Data.ByteString      as BS
+import qualified Data.Map.Strict      as M
+import           Data.Maybe           (catMaybes, isJust)
+import           Data.Text            (Text, pack)
+import qualified Data.Text            as T
+-- import           Data.Text.Encoding     as TE
+import qualified Data.Text.Lazy       as TL
+import           Data.Text.Lazy.IO    as I
+import           Data.Time.Calendar   (Day)
 import           GHC.Generics
 import           Lucid
-import qualified Network.HTTP.Types.URI as HTTP
 import           System.Directory
-import           System.FilePath        (dropFileName, splitDirectories, (</>))
-import           System.FilePath.Find   (always, fileName, find, (~~?))
+import           System.FilePath      ((</>))
+import           System.FilePath.Find (always, fileName, find, (~~?))
+import           System.Process       (createProcess, proc, waitForProcess)
 import           Text.Read
-import           Web.Scotty             (Param)
+import           Web.Scotty           (Param)
 
 -- | Map from DOI to Paper
 type FLMState = M.Map Text Paper -- local user state
@@ -217,3 +215,9 @@ findPaper top match = find always (fileName ~~? match) top
 
 -- random useful thing
 third (a,b,c) = c
+
+
+-- convert a file into static page images
+-- XXX TODO
+
+-- createProcess (proc "pdftocairo" ["-png", "paper.pdf"]) { cwd =
