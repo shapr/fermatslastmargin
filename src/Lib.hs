@@ -1,42 +1,43 @@
-{-# LANGUAGE ApplicativeDo              #-}
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TupleSections              #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ApplicativeDo         #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 module Lib where
 
-import           Config
+-- import           Config
 import           Config.Schema
-import           Config.Schema.Load
-import           Control.Monad        (filterM, join)
-import           Data.Aeson           (FromJSON, ToJSON, decodeStrict)
-import           Data.Aeson.Text      (encodeToLazyText)
-import qualified Data.ByteString      as BS
-import qualified Data.Map.Strict      as M
-import           Data.Maybe           (catMaybes, isJust)
-import           Data.Text            (Text, pack)
-import qualified Data.Text            as T
--- import           Data.Text.Encoding     as TE
-import qualified Data.Text.Lazy       as TL
-import           Data.Text.Lazy.IO    as I
-import           Data.Time.Calendar   (Day)
+-- import           Config.Schema.Load
+import           Control.Monad         (filterM, join)
+import           Data.Aeson            (FromJSON, ToJSON, decodeStrict)
+import           Data.Aeson.Text       (encodeToLazyText)
+import qualified Data.ByteString       as BS
+import qualified Data.Map.Strict       as M
+import           Data.Maybe            (catMaybes, isJust)
+import           Data.Text             (Text, pack)
+import qualified Data.Text             as T
+import           Data.Text.Encoding    (decodeUtf8)
+import qualified Data.Text.Lazy        as TL
+import           Data.Text.Lazy.IO     as I
+import           Data.Time.Calendar    (Day)
 import           GHC.Generics
 import           Lucid
 import           System.Directory
-import           System.FilePath      ((</>))
-import           System.FilePath.Find (always, fileName, find, (~~?))
-import           System.Process       (createProcess, proc, waitForProcess)
+import           System.Exit           (ExitCode)
+import           System.FilePath       (combine, splitFileName)
+import           System.FilePath       ((</>))
+import           System.FilePath.Find  (always, fileName, find, (~~?))
+import           System.FilePath.Manip (renameWith)
+import           System.Process        (StdStream (..), close_fds,
+                                        createProcess, cwd, proc, std_err,
+                                        std_in, std_out, waitForProcess)
 import           Text.Read
-import           Web.Scotty           (Param)
+import           Web.Scotty            (Param)
 
 -- | Map from DOI to Paper
 type FLMState = M.Map Text Paper -- local user state
@@ -220,4 +221,29 @@ third (a,b,c) = c
 -- convert a file into static page images
 -- XXX TODO
 
--- createProcess (proc "pdftocairo" ["-png", "paper.pdf"]) { cwd =
+renderPageImages :: FilePath -> IO (ExitCode, Text)
+renderPageImages fp = do
+  (Nothing, Nothing, Just errh, pid) <- createProcess (proc "pdftocairo" ["-png", "paper.pdf", "page"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pid
+  result <- decodeUtf8 <$> BS.hGetContents errh
+  renameZ fp
+  return (exitCode, result)
+
+-- f <- find always (fileName ~~? "page-*.png") "/home/shae/.fermatslastmargin/pageimages/10.4204/EPTCS.275.6"
+-- splitFileName $ head f
+-- ("/home/shae/.fermatslastmargin/pageimages/10.4204/EPTCS.275.6/","page-01.png")
+renameZ :: FilePath -> IO ()
+renameZ fp = do
+  names <- find always (fileName ~~? "page-*.png") fp
+  mapM_ (renameWith changeWholePath) names
+
+-- | should convert like this: foo/bar/page-0001.png -> foo/bar/page-1.png
+changeWholePath fp =  uncurry combine . fixName $ splitFileName fp
+    where fixName = \(x,y)-> (x,fixZ y)
+
+-- ugly, but works, kinda?
+fixZ n@('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
+fixZ n                          = n
+
+killZeroes ('0':xs) = killZeroes xs
+killZeroes x        = x

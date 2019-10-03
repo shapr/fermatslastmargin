@@ -14,7 +14,7 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [X] add paper info
 - [X] read/write annotations
 - [X] load page images
-- [ ] render 'uploaded' PDF to page images
+- [X] render 'uploaded' PDF to page images
 - [ ] push to github repo
 - [ ] pull from friends' github repo
 - [ ] download paper (as PDF) when given unique ID (DOI for now)

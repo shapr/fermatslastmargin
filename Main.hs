@@ -3,26 +3,22 @@
 module Main where
 
 import           Control.Monad.IO.Class               (liftIO)
-import           Control.Monad.Trans.Resource
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
 import qualified Data.Map.Strict                      as M
-import           Data.Monoid                          (mconcat)
 import qualified Data.Text                            as T
-import qualified Data.Text.IO                         as TIO
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
 import           Lucid                                (renderText)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse
-import           System.Directory                     (getHomeDirectory)
+import           System.Directory                     (createDirectoryIfMissing,
+                                                       getHomeDirectory)
 import           System.FilePath                      ((</>))
-import           System.IO                            (stdout)
 import           Web.Scotty
 
 import           Lib
-import qualified Lib
 
 localUserDir  = ".fermatslastmargin/localuser"
 
@@ -32,6 +28,7 @@ main = do
   userHomeDir <- getHomeDirectory
   let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
       fullLocalDir = userHomeDir </> ".fermatslastmargin"
+      fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
   userState <- readState fullUserDir
   -- friendState <- readState -- XXX
   scotty 3000 $ do
@@ -53,8 +50,10 @@ main = do
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
                                        liftIO $ writeState (userHomeDir </> localUserDir) $ M.insert (uid thePaper) thePaper userState
-                                       let paperDir = fullUserDir </> (T.unpack $ uid thePaper)
+                                       let paperDir = fullStaticDir </> (T.unpack $ uid thePaper)
+                                       liftIO $ createDirectoryIfMissing True paperDir -- gotta have this
                                        liftIO $ BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
+                                       liftIO $ renderPageImages paperDir
                                        liftIO $ print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
