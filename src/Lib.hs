@@ -96,9 +96,11 @@ writeState fp flms = do
 -- | given a directory for a paper, read that json file into a Paper value
 readPaper :: FilePath -> IO (Maybe Paper)
 readPaper fp = do
-  f <- findPaper fp "paper.json"
-  bs <- BS.readFile (head f) -- XXX this gonna be a problem at some point XXX
-  pure $ decodeStrict bs -- is this right? do I need this pure? can I concat it with the previous line?
+  f <- listToMaybe <$> findPaper fp "paper.json"
+  case f of
+    Nothing -> pure Nothing
+    Just p  -> decodeStrict <$> BS.readFile p
+
 
 -- | assume the dir given is the *USER* directory where all papers have their own directory
 -- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
