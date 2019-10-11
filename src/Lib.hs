@@ -6,7 +6,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 module Lib where
 
@@ -18,7 +17,7 @@ import           Data.Aeson            (FromJSON, ToJSON, decodeStrict)
 import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
 import qualified Data.Map.Strict       as M
-import           Data.Maybe            (catMaybes, isJust)
+import           Data.Maybe            (catMaybes, isJust, listToMaybe)
 import           Data.Text             (Text, pack)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf8)
@@ -29,8 +28,7 @@ import           GHC.Generics
 import           Lucid
 import           System.Directory
 import           System.Exit           (ExitCode)
-import           System.FilePath       (combine, splitFileName)
-import           System.FilePath       ((</>))
+import           System.FilePath       (combine, splitFileName, (</>))
 import           System.FilePath.Find  (always, fileName, find, (~~?))
 import           System.FilePath.Manip (renameWith)
 import           System.Process        (StdStream (..), close_fds,
@@ -137,17 +135,6 @@ filterFile = filterM doesFileExist
 getContent = content
 getPaperId = uid
 
-data GithubConfig = GC {
-      username :: Text
-    , oauth    :: Text
-    } deriving (Show, Eq, Ord)
-
-githubSpec :: ValueSpec GithubConfig
-githubSpec = sectionsSpec "github" $
-         do username <- reqSection "username" "GitHub username"
-            oauth <- reqSection "oauth" "OAuth Token for GitHub"
-            pure GC{..}
-
 -- html page stuff
 
 pageTemplate :: Monad m => Text -> HtmlT m a -> HtmlT m a
@@ -172,6 +159,9 @@ papersadd nowTime = do
               label_ "PDF of file"
               input_ [type_ "file", name_ "uploadedfile"]
               input_ [type_ "submit"]
+
+notespush :: Monad m => HtmlT m ()
+notespush = a_ [href_ "/gitpush"] "Push notes to GitHub"
 
 paperstable :: Monad m => [Paper] -> HtmlT m ()
 paperstable rows =
@@ -245,3 +235,34 @@ fixZ n                          = n
 
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
+
+-- pitch everything into git!
+commitEverything :: FilePath -> IO (ExitCode, Text)
+commitEverything fp = do
+  (Nothing, Nothing, Just errh, pid) <- createProcess (proc "git" ["add", "-A"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pid
+  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["commit", "-m", "added understanding"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pidc
+  result <- decodeUtf8 <$> BS.hGetContents errhc
+  return (exitCode, result)
+
+-- push to remote
+pushEverything :: FilePath -> IO (ExitCode, Text)
+pushEverything fp = do
+  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["push", "origin"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pidc
+  result <- decodeUtf8 <$> BS.hGetContents errhc
+  return (exitCode, result)
+
+
+-- github config
+data GithubConfig = GC {
+      username :: Text
+    , oauth    :: Text
+    } deriving (Show, Eq, Ord)
+
+githubSpec :: ValueSpec GithubConfig
+githubSpec = sectionsSpec "github" $
+         do username <- reqSection "username" "GitHub username"
+            oauth <- reqSection "oauth" "OAuth Token for GitHub"
+            pure GC{..}

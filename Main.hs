@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
+import           Config.Schema.Load
 import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
@@ -15,6 +16,7 @@ import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse
 import           System.Directory                     (createDirectoryIfMissing,
                                                        getHomeDirectory)
+import           System.Exit                          (ExitCode (..))
 import           System.FilePath                      ((</>))
 import           Web.Scotty
 
@@ -24,12 +26,16 @@ localUserDir  = ".fermatslastmargin/localuser"
 
 main :: IO ()
 main = do
-  -- configContents <- TIO.readFile "~/.fermatslastmargin/config" -- needed once github stuff works
   userHomeDir <- getHomeDirectory
   let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
       fullLocalDir = userHomeDir </> ".fermatslastmargin"
       fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
+
+  -- load all papers and notes
   userState <- readState fullUserDir
+  -- load github username and oauth token
+  -- gc <- loadValueFromFile githubSpec "/home/shae/.fermatslastmargin/config"
+  -- print gc
   -- friendState <- readState -- XXX
   scotty 3000 $ do
          middleware logStdoutDev
@@ -41,7 +47,7 @@ main = do
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> paperstable (M.elems userState))
 
          post "/paper" $ do
                   ps <- params
@@ -49,8 +55,9 @@ main = do
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
-                                       liftIO $ writeState (userHomeDir </> localUserDir) $ M.insert (uid thePaper) thePaper userState
-                                       let paperDir = fullStaticDir </> (T.unpack $ uid thePaper)
+                                       liftIO $ writeState fullUserDir $ M.insert (uid thePaper) thePaper userState
+                                       liftIO $ commitEverything fullUserDir -- should have just written the paper.json, now stuff it into git
+                                       let paperDir = fullStaticDir </> T.unpack (uid thePaper)
                                        liftIO $ createDirectoryIfMissing True paperDir -- gotta have this
                                        liftIO $ BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                                        liftIO $ renderPageImages paperDir
@@ -81,6 +88,7 @@ main = do
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
+                  liftIO $ commitEverything fullUserDir
                   json final
                   html $ TL.pack $ show jd
 
@@ -94,6 +102,7 @@ main = do
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
+                  liftIO $ commitEverything fullUserDir
                   json final
          -- didn't see this coming, too bad DOI has forward slash that makes everything a huge pain
          post "/getannotate" $ do
@@ -107,3 +116,9 @@ main = do
                             Nothing -> raise "That Paper does not exist"
                             Just p  -> pure $ maybe (Annotation "" pagenum puid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json final
+
+         get "/gitpush" $ do
+                  (exitCode, result) <- liftIO $ pushEverything fullUserDir
+                  html $ case exitCode of
+                           ExitSuccess -> "Successfully pushed to github"
+                           _           -> "Failed to push to github"
