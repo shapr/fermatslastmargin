@@ -22,20 +22,18 @@ import           Web.Scotty
 
 import           Lib
 
-localUserDir  = ".fermatslastmargin/localuser"
-
 main :: IO ()
 main = do
   userHomeDir <- getHomeDirectory
   let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
       fullLocalDir = userHomeDir </> ".fermatslastmargin"
       fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
+      fullFriendsDir = fullLocalDir </> "friends"
 
   -- load all papers and notes
   userState <- readState fullUserDir
   -- load github username and oauth token
-  -- gc <- loadValueFromFile githubSpec "/home/shae/.fermatslastmargin/config"
-  -- print gc
+  gc <- loadValueFromFile githubSpec (fullLocalDir </> "config")
   -- friendState <- readState -- XXX
   scotty 3000 $ do
          middleware logStdoutDev
@@ -47,7 +45,7 @@ main = do
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> friendspull >> paperstable (M.elems userState))
 
          post "/paper" $ do
                   ps <- params
@@ -122,3 +120,6 @@ main = do
                   html $ case exitCode of
                            ExitSuccess -> "Successfully pushed to github"
                            _           -> "Failed to push to github"
+         get "/gitpull" $ do
+                  liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir
+                  redirect "/" -- should probably report problems someday

@@ -9,10 +9,9 @@
 {-# LANGUAGE UndecidableInstances  #-}
 module Lib where
 
--- import           Config
 import           Config.Schema
--- import           Config.Schema.Load
 import           Control.Monad         (filterM, join)
+import           Control.Monad.Extra
 import           Data.Aeson            (FromJSON, ToJSON, decodeStrict)
 import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
@@ -25,6 +24,7 @@ import qualified Data.Text.Lazy        as TL
 import           Data.Text.Lazy.IO     as I
 import           Data.Time.Calendar    (Day)
 import           GHC.Generics
+import           Lib.Github
 import           Lucid
 import           System.Directory
 import           System.Exit           (ExitCode)
@@ -163,6 +163,9 @@ papersadd nowTime = do
 notespush :: Monad m => HtmlT m ()
 notespush = a_ [href_ "/gitpush"] "Push notes to GitHub"
 
+friendspull :: Monad m => HtmlT m ()
+friendspull = a_ [href_ "/gitpull"] "Pull friends' notes from GitHub"
+
 paperstable :: Monad m => [Paper] -> HtmlT m ()
 paperstable rows =
   table_ $ do
@@ -236,6 +239,20 @@ fixZ n                          = n
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
 
+-- github config
+data GithubConfig = GC {
+      username :: Text
+    , oauth    :: Text
+    } deriving (Show, Eq, Ord)
+
+githubSpec :: ValueSpec GithubConfig
+githubSpec = sectionsSpec "github" $
+         do username <- reqSection "username" "GitHub username"
+            oauth <- reqSection "oauth" "OAuth Token for GitHub"
+            pure GC{..}
+
+-- whole buncha shelling out to git to save, push, or pull friends repos
+
 -- pitch everything into git!
 commitEverything :: FilePath -> IO (ExitCode, Text)
 commitEverything fp = do
@@ -254,15 +271,35 @@ pushEverything fp = do
   result <- decodeUtf8 <$> BS.hGetContents errhc
   return (exitCode, result)
 
+-- | Given a directory and git url, clone the git repo into that directory.
+cloneRepo :: FilePath -> Text -> IO (ExitCode, Text)
+cloneRepo fp url = do
+  print $ "cloning " <> T.pack fp <> " from " <> url
+  _ <- createDirectoryIfMissing True fp
+  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["clone",T.unpack url]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pidc
+  result <- decodeUtf8 <$> BS.hGetContents errhc
+  return (exitCode, result)
 
--- github config
-data GithubConfig = GC {
-      username :: Text
-    , oauth    :: Text
-    } deriving (Show, Eq, Ord)
+-- | Given a directory, run git pull in that directory.
+pullRepo :: FilePath -> IO (ExitCode, Text)
+pullRepo fp = do
+  print $ "pulling " <> fp
+  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["pull"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  exitCode <- waitForProcess pidc
+  result <- decodeUtf8 <$> BS.hGetContents errhc
+  return (exitCode, result)
 
-githubSpec :: ValueSpec GithubConfig
-githubSpec = sectionsSpec "github" $
-         do username <- reqSection "username" "GitHub username"
-            oauth <- reqSection "oauth" "OAuth Token for GitHub"
-            pure GC{..}
+-- | returns IO [(username, https url to flmdata)]
+-- findRepos' :: Text -> Text -> IO [(T.Text, T.Text)]
+getFriendRepos :: Text -> Text -> String -> IO ()
+getFriendRepos username token friendsdir = do
+  nameurlpairs <- findRepos' username token
+  let friendDirs = (\(x,y) -> (friendsdir </> T.unpack x </> ".git",y)) <$> nameurlpairs
+  -- check for .git dir in each of the friendDirs ([yes], [no])
+  -- print friendDirs
+  (needpulls, needclones) <- partitionM (doesDirectoryExist . fst) friendDirs
+  -- XXX should really check for errors at some point XXX
+  _ <- mapM pullRepo (fst <$> needpulls)
+  _ <- mapM (uncurry cloneRepo) needclones
+  print $ show (length needpulls) <> " repos pulled, " <> show (length needclones) <> " new repos cloned."
