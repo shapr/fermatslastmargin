@@ -11,6 +11,7 @@ import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
 import           Lucid                                (renderText)
+import           Network.HTTP.Client.TLS              (newTlsManager)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse
@@ -30,6 +31,8 @@ main = do
       fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
       fullFriendsDir = fullLocalDir </> "friends"
 
+  -- create HTTP manager cause we gonna need it?
+  mgmt <- newTlsManager
   -- load all papers and notes
   userState <- readState fullUserDir
   -- load github username and oauth token
@@ -121,5 +124,11 @@ main = do
                            ExitSuccess -> "Successfully pushed to github"
                            _           -> "Failed to push to github"
          get "/gitpull" $ do
-                  liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir
+                  liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir mgmt
                   redirect "/" -- should probably report problems someday
+
+         -- get "/newuser" $ do
+         --          -- create the repo on github
+         --          liftIO $ createDataRepo (oauth gc)
+         --          -- clone the repo from github into fullUserDir
+         --          liftIO $ cloneRepo fullUserDir

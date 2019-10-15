@@ -26,6 +26,7 @@ import           Data.Time.Calendar    (Day)
 import           GHC.Generics
 import           Lib.Github
 import           Lucid
+import           Network.HTTP.Client   (Manager)
 import           System.Directory
 import           System.Exit           (ExitCode)
 import           System.FilePath       (combine, splitFileName, (</>))
@@ -276,7 +277,7 @@ cloneRepo :: FilePath -> Text -> IO (ExitCode, Text)
 cloneRepo fp url = do
   print $ "cloning " <> T.pack fp <> " from " <> url
   _ <- createDirectoryIfMissing True fp
-  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["clone",T.unpack url]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["clone",T.unpack url, fp]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
   exitCode <- waitForProcess pidc
   result <- decodeUtf8 <$> BS.hGetContents errhc
   return (exitCode, result)
@@ -291,15 +292,16 @@ pullRepo fp = do
   return (exitCode, result)
 
 -- | returns IO [(username, https url to flmdata)]
--- findRepos' :: Text -> Text -> IO [(T.Text, T.Text)]
-getFriendRepos :: Text -> Text -> String -> IO ()
-getFriendRepos username token friendsdir = do
-  nameurlpairs <- findRepos' username token
-  let friendDirs = (\(x,y) -> (friendsdir </> T.unpack x </> ".git",y)) <$> nameurlpairs
+getFriendRepos :: Text -> Text -> String -> Manager -> IO ()
+getFriendRepos username token friendsdir mgmt = do
+  nameurlpairs <- findRepos' username token mgmt
+  let unstupid = T.replace "/repos" "" . T.replace "api." "" -- dammit github, why is your API broke?
+  let friendDirs = (\(x,y) -> (friendsdir </> T.unpack x, unstupid y)) <$> nameurlpairs
   -- check for .git dir in each of the friendDirs ([yes], [no])
   -- print friendDirs
   (needpulls, needclones) <- partitionM (doesDirectoryExist . fst) friendDirs
   -- XXX should really check for errors at some point XXX
-  _ <- mapM pullRepo (fst <$> needpulls)
-  _ <- mapM (uncurry cloneRepo) needclones
+  pullResults <- mapM pullRepo (fst <$> needpulls)
+  cloneResults <- mapM (uncurry cloneRepo) needclones
   print $ show (length needpulls) <> " repos pulled, " <> show (length needclones) <> " new repos cloned."
+  print $ "possible errors: " <> show pullResults <> show cloneResults

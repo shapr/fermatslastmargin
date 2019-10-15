@@ -23,6 +23,8 @@ library
     , filemanip
     , filepath
     , github
+    , http-client-tls
+    , http-client
     , http-types
     , lucid
     , process
@@ -50,6 +52,8 @@ executable spookel
     , containers
     , directory
     , filepath
+    , http-client-tls
+    , http-client
     , lucid
     , resourcet
     , scotty
