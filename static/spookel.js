@@ -11,6 +11,16 @@ function setAnnotation(a) {
     document.getElementById("content").value = a["content"] || ""; // still looks ugly to me
 }
 
+function setFriends(data) {
+    friends_table = document.getElementById("friends");
+    $.each(data, function() {
+	var tbl_row = friends_table.insertRow();
+	var row_cel = tbl_row.insertCell(0);
+	var txt_cel = document.createTextNode(data);
+	row_cel.appendChild(txt_cel);
+    });
+}
+
 function setPageImage(pagenum) {
     let imgsrc = "/" + uid + "/page-" + pagenum + '.png';
     document.getElementById("pageimage").setAttribute("src",imgsrc);
@@ -31,6 +41,7 @@ $(document).ready(function(){
     $("#pgdn").val(pagenum - 1 || 1); // gosh that's ugly
     // $.get("/annotate/" + uid + "/" + pagenum, "", setAnnotation, "json"); // now doing POST to load a note, argh!
     $.post("/getannotate", JSON.stringify({ pageNumber: pagenum, content: "", paperuid: uid }), setAnnotation, "json");
+    $.get("/friends?paperuid=" + uid, "", setFriends, "json");
     setPageImage(pagenum);
 });
 
@@ -45,6 +56,7 @@ function buildup () {
 function builddown () {
     return hereagain() + "?pagenum=" + (pagenum + 1) + "&uid=" + uid;
 }
+
 
 
 document.addEventListener('keydown', (e) => {

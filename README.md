@@ -20,3 +20,7 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [ ] download paper (as PDF) when given unique ID (DOI for now)
 - [ ] search arxiv by title to get DOI
 - [ ] search crossref.org by title to get DOI
+
+# Requirements
+- poppler-utils (apt install poppler-utils)
+- zlib (apt install zlib1g-dev)

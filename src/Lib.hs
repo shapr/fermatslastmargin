@@ -72,7 +72,7 @@ upsertAnnotation a@(Annotation c pnum puid) oldAnns = if doesExist then replaceA
 
 replaceAnnotation :: Int -> Text -> [Annotation] -> [Annotation]
 replaceAnnotation i content [] = []
-replaceAnnotation i content (a@(Annotation c p u):anns) = if p == i then (Annotation content p u) : anns else a : replaceAnnotation i content anns
+replaceAnnotation i content (a@(Annotation c p u):anns) = if p == i then Annotation content p u : anns else a : replaceAnnotation i content anns
 
 -- | read the names of the directories in the config directory
 readState :: FilePath -> IO FLMState
@@ -119,6 +119,19 @@ readFriendState fp = do
   friendDirs <- filterDirectoryPair $ zip (fmap (fp </>) friendNames) friendNames
   friendStates <- mapM readState (fst <$> friendDirs)
   pure $ M.fromList (zip (T.pack <$> friendNames) friendStates)
+
+-- | front end code is easier if FriendState is converted to M.Map paperUID [username]
+type FriendView = M.Map Text [Text]
+
+-- ugh, code from tired brain, there must be a simpler way!
+friendView :: FriendState -> FriendView
+friendView fs = M.fromListWith (<>) (rewire (boph <$> M.toList fs))
+
+boph (friendname,flmstate) = (friendname, M.keys flmstate)
+
+rewire :: [(a,[b])] -> [(b,[a])]
+rewire [] = []
+rewire ((username,uids):friends) = zip uids (repeat [username]) <> rewire friends
 
 -- what's wrong with the dang parser here?
 filterDirectory :: [FilePath] -> IO [FilePath]

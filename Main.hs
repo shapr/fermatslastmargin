@@ -37,7 +37,10 @@ main = do
   userState <- readState fullUserDir
   -- load github username and oauth token
   gc <- loadValueFromFile githubSpec (fullLocalDir </> "config")
-  -- friendState <- readState -- XXX
+  friendState <- readFriendState fullFriendsDir
+  -- M.Map paperUID [username] so the front end can easily display friends who have notes on this paper
+  let friendPapers = friendView friendState
+  print friendState
   scotty 3000 $ do
          middleware logStdoutDev
          middleware $ staticPolicy (noDots >-> addBase "static")
@@ -117,6 +120,9 @@ main = do
                             Nothing -> raise "That Paper does not exist"
                             Just p  -> pure $ maybe (Annotation "" pagenum puid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json final
+         get "/friends" $ do
+                  paperuid <- param "paperuid"
+                  json $ M.findWithDefault [] paperuid friendPapers
 
          get "/gitpush" $ do
                   (exitCode, result) <- liftIO $ pushEverything fullUserDir
