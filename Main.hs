@@ -127,8 +127,13 @@ main = do
                   liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir mgmt
                   redirect "/" -- should probably report problems someday
 
-         -- get "/newuser" $ do
-         --          -- create the repo on github
-         --          liftIO $ createDataRepo (oauth gc)
-         --          -- clone the repo from github into fullUserDir
-         --          liftIO $ cloneRepo fullUserDir
+         get "/newuser" $ do
+                  -- create the repo on github
+                  createRes <- liftIO $ createDR (T.unpack $ oauth gc)
+                  -- clone the repo from github into fullUserDir
+                  case createRes of
+                    Left e -> html $ TL.pack $ show e
+                    Right r -> do
+                            liftIO $ cloneRepo fullUserDir (unstupid $ (snd . pnRepo) r )
+                            html $ "new user repo cloned"
+                  -- liftIO $ cloneRepo fullUserDir

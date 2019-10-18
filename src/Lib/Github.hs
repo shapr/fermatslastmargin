@@ -32,7 +32,8 @@ findRepos localusername oauthToken mgmt = do
   let result = pairNameRepo <$> rights res
   print $ "found valid friend repos " <> show result
   pure result
-      where pairNameRepo r = (untagName . simpleOwnerLogin $ repoOwner r, getUrl $ repoUrl r)
+
+pairNameRepo r = (untagName . simpleOwnerLogin $ repoOwner r, getUrl $ repoUrl r)
 
 flmRepo = flip Repos.repository (mkName ([] :: [Repos.Repo]) "flmdata")
 
@@ -43,7 +44,9 @@ findRepos' username token mgmt =
 
 createDataRepo oauthToken = do
   let auth = GitHub.OAuth . fromString $ oauthToken
-  Repos.createRepo' auth flmdatarepo
+  res <- Repos.createRepo' auth flmdatarepo
+  pure res
+
 -- empty flmdata repo for initial startup
 flmdatarepo = NewRepo {
                 newRepoName = mkName ([] :: [Repo]) "flmdata"

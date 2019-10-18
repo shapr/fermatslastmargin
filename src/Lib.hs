@@ -291,17 +291,21 @@ pullRepo fp = do
   result <- decodeUtf8 <$> BS.hGetContents errhc
   return (exitCode, result)
 
+-- dammit github, why is your API broke? oh I think I'm using the wrong field should be repoHtmlUrl? XXX fix this later!
+unstupid = T.replace "/repos" "" . T.replace "api." ""
+
 -- | returns IO [(username, https url to flmdata)]
 getFriendRepos :: Text -> Text -> String -> Manager -> IO ()
 getFriendRepos username token friendsdir mgmt = do
   nameurlpairs <- findRepos' username token mgmt
-  let unstupid = T.replace "/repos" "" . T.replace "api." "" -- dammit github, why is your API broke?
   let friendDirs = (\(x,y) -> (friendsdir </> T.unpack x, unstupid y)) <$> nameurlpairs
-  -- check for .git dir in each of the friendDirs ([yes], [no])
-  -- print friendDirs
+  -- check for existence of the friendDirs ([yes], [no])
   (needpulls, needclones) <- partitionM (doesDirectoryExist . fst) friendDirs
-  -- XXX should really check for errors at some point XXX
   pullResults <- mapM pullRepo (fst <$> needpulls)
   cloneResults <- mapM (uncurry cloneRepo) needclones
   print $ show (length needpulls) <> " repos pulled, " <> show (length needclones) <> " new repos cloned."
   print $ "possible errors: " <> show pullResults <> show cloneResults
+
+-- looks like names imported from Lib.Github are not automatically exported? who knew?!
+createDR = createDataRepo
+pnRepo = pairNameRepo
