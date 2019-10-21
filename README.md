@@ -1,6 +1,9 @@
 # spookel
 prototype of research paper annotation tool
 
+## prototype
+This code will be moving to http://github.com/shapr/fermatslastmargin after Halloween 2019.
+
 ## Getting Started
 * install [poppler-utils](https://poppler.freedesktop.org/), or more specifically, make sure the pdftocairo binary from poppler-utils is in your `$PATH`
 * git clone this repository

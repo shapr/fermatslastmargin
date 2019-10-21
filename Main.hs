@@ -46,8 +46,6 @@ main = do
          middleware $ staticPolicy (noDots >-> addBase "static")
          middleware $ staticPolicy (noDots >-> addBase (fullLocalDir </> "pageimages"))
 
-         get "/foo%2C" $ html "you got the url encoded option"
-         get "/foo," $ html "you got the NOT YET url encoded option"
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
@@ -141,5 +139,4 @@ main = do
                     Left e -> html $ TL.pack $ show e
                     Right r -> do
                             liftIO $ cloneRepo fullUserDir (unstupid $ (snd . pnRepo) r )
-                            html $ "new user repo cloned"
-                  -- liftIO $ cloneRepo fullUserDir
+                            html "new user repo cloned"
