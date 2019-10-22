@@ -3,6 +3,7 @@
 module Main where
 
 import           Config.Schema.Load
+import           Control.Monad                        ((<=<))
 import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
@@ -58,7 +59,7 @@ main = do
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
                                        liftIO $ writeState fullUserDir $ M.insert (uid thePaper) thePaper userState
-                                       liftIO $ commitEverything fullUserDir -- should have just written the paper.json, now stuff it into git
+                                       liftIO $ commitEverything fullUserDir -- just wrote paper.json, now stuff it into git
                                        let paperDir = fullStaticDir </> T.unpack (uid thePaper)
                                        liftIO $ createDirectoryIfMissing True paperDir -- gotta have this
                                        liftIO $ BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
@@ -66,35 +67,6 @@ main = do
                                        liftIO $ print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
-
-         get "/annotate/:uid" $ do
-                  uid <- param "uid"
-                  redirect $ "/index.html?uid=" <> uid <> "&pagenum=1"
-
-         get "/annotate/:uid/:pagenum" $ do -- smart thing to do is dump 'em all into the browser and load from javascript
-                  pagenum <- param "pagenum"
-                  uid <- param "uid"
-                  userState <- liftIO $ readState fullUserDir
-                  let mbPaper = M.lookup uid userState
-                  final <- case mbPaper of
-                             Nothing -> raise "That Paper does not exist"
-                             Just p  -> pure $ maybe (Annotation "" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
-                  json final
-
-         post "/annotate/:uid/:pagenum" $ do
-                  (jd :: Annotation) <- jsonData
-                  (uid :: T.Text) <- param "uid"
-                  pagenum <- param "pagenum"
-                  userState <- liftIO $ readState fullUserDir
-                  let mbPaper = M.lookup uid userState
-                  final <- case mbPaper of
-                             Nothing -> raise "That Paper does not exist"
-                             Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
-                  liftIO $ commitEverything fullUserDir
-                  json final
-                  html $ TL.pack $ show jd
-
-                  redirect $ "/index.html?" <> pagenum
 
          post "/annotate" $ do
                   (jd :: Annotation) <- jsonData
@@ -106,18 +78,22 @@ main = do
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
                   liftIO $ commitEverything fullUserDir
                   json final
+
          -- didn't see this coming, too bad DOI has forward slash that makes everything a huge pain
-         post "/getannotate" $ do
-                  (jd :: Annotation) <- jsonData
-                  let pagenum = pageNumber jd
-                      puid = paperuid jd
+         get "/getannotate" $ do -- this should really be a GET, not a POST
+                  pagenum <- param "pagenum"
+                  uid <- param "paperuid"
+                  ps <- params
                   userState <- liftIO $ readState fullUserDir
-                  let puid = paperuid jd
-                      mbPaper = M.lookup puid userState
+                  -- point free code below replaces a big pile of pattern matches on Maybe!
+                  let mbFriendnote = ((maybeGetAnnotation pagenum . notes) <=< M.lookup uid <=< (flip M.lookup friendState . TL.toStrict) <=< lookup "viewfriend") ps
+                      friendnote = maybe (Annotation "" pagenum uid) id mbFriendnote
+                  let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"
-                            Just p  -> pure $ maybe (Annotation "" pagenum puid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
-                  json final
+                            Just p  -> pure $ maybe (Annotation "" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
+                  json [final,friendnote] -- return an array of localuser note, and selected friend note. There must be a better way, argh
+
          get "/friends" $ do
                   paperuid <- param "paperuid"
                   json $ M.findWithDefault [] paperuid friendPapers

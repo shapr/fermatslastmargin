@@ -6,9 +6,10 @@ if (pagenum < 1) {
 
 // var uid = "todo";
 var uid = params.get("uid") || "todo";
-
+var friendview = params.get("friendview") || "";
 function setAnnotation(a) {
-    document.getElementById("content").value = a["content"] || ""; // still looks ugly to me
+    document.getElementById("content").value = a[0]["content"] || ""; // still looks ugly to me
+    document.getElementById("friend").innerHTML = a[1]["content"] || ""; // save me from nulls!
 }
 
 function setFriends(data) {
@@ -16,8 +17,11 @@ function setFriends(data) {
     $.each(data, function() {
 	var tbl_row = friends_table.insertRow();
 	var row_cel = tbl_row.insertCell(0);
-	var txt_cel = document.createTextNode(data);
-	row_cel.appendChild(txt_cel);
+	var ank = document.createElement('a');
+	ank.title = data;
+	ank.href = location.href + "&friendview=" + data;
+	ank.appendChild(document.createTextNode(data));
+	row_cel.appendChild(ank);
     });
 }
 
@@ -40,7 +44,12 @@ $(document).ready(function(){
     $("#pgup").val(pagenum + 1);
     $("#pgdn").val(pagenum - 1 || 1); // gosh that's ugly
     // $.get("/annotate/" + uid + "/" + pagenum, "", setAnnotation, "json"); // now doing POST to load a note, argh!
-    $.post("/getannotate", JSON.stringify({ pageNumber: pagenum, content: "", paperuid: uid }), setAnnotation, "json");
+    // $.post("/getannotate", JSON.stringify({ pageNumber: pagenum, content: "", paperuid: uid }), setAnnotation, "json");
+    var append = "";
+    if(friendview) {
+	append = "&viewfriend=" + friendview;
+    }
+    $.get("/getannotate?pagenum=" + pagenum + "&paperuid=" + uid + append, "", setAnnotation, "json");
     $.get("/friends?paperuid=" + uid, "", setFriends, "json");
     setPageImage(pagenum);
 });
@@ -57,15 +66,11 @@ function builddown () {
     return hereagain() + "?pagenum=" + (pagenum + 1) + "&uid=" + uid;
 }
 
-
-
 document.addEventListener('keydown', (e) => {
     content = document.getElementById("content");
 
     if (e.key == "PageDown") {
 
-	// location.href = "http://localhost:3000/pagedown"
-	// location.href = hereagain() + "?pagenum=" + (pagenum + 1) + "&uid=" + uid // "http://localhost:3000/pagedown"
 	location.href = builddown();
     }
     if (e.key == "PageUp") {
@@ -81,7 +86,6 @@ document.addEventListener('keydown', (e) => {
 	    // submit, check for write, if success then redirect to this page
 	    if (content.value.length > 0) { // check for empty textarea, this might work?
 		// submit to server
-		// $.post("/annotate/" + uid + "/" + pagenum, JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
 		$.post("/annotate", JSON.stringify({ pageNumber: pagenum, content: content.value, paperuid: uid }));
 		content.blur();
 		// display saved, and drop focus
