@@ -12,6 +12,25 @@ function setAnnotation(a) {
     document.getElementById("friend").innerHTML = a[1]["content"] || ""; // save me from nulls!
 }
 
+// stolen from https://stackoverflow.com/a/1634841/39683
+function removeURLParameter(url, parameter) {
+    //prefer to use l.search if you have a location/link object
+    var urlparts = url.split('?');
+    if (urlparts.length >= 2) {
+	var prefix = encodeURIComponent(parameter) + '=';
+	var pars = urlparts[1].split(/[&;]/g);
+	//reverse iteration as may be destructive
+	for (var i = pars.length; i-- > 0;) {
+	    //idiom for string.startsWith
+	    if (pars[i].lastIndexOf(prefix, 0) !== -1) {
+		pars.splice(i, 1);
+	    }
+	}
+	return urlparts[0] + (pars.length > 0 ? '?' + pars.join('&') : '');
+    }
+    return url;
+}
+
 function setFriends(data) {
     friends_table = document.getElementById("friends");
     $.each(data, function() {
@@ -19,7 +38,11 @@ function setFriends(data) {
 	var row_cel = tbl_row.insertCell(0);
 	var ank = document.createElement('a');
 	ank.title = data;
-	ank.href = location.href + "&friendview=" + data;
+	if (friendview != data) {
+	    ank.href = location.href + "&friendview=" + data;
+	} else {
+	    ank.href = removeURLParameter(location.href,"friendview");
+	}
 	ank.appendChild(document.createTextNode(data));
 	row_cel.appendChild(ank);
     });
