@@ -3,7 +3,7 @@
 module Main where
 
 import           Config.Schema.Load
-import           Control.Monad                        ((<=<))
+import           Control.Monad                        (unless, (<=<))
 import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
@@ -17,6 +17,7 @@ import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse
 import           System.Directory                     (createDirectoryIfMissing,
+                                                       doesFileExist,
                                                        getHomeDirectory)
 import           System.Exit                          (ExitCode (..))
 import           System.FilePath                      ((</>))
@@ -32,25 +33,49 @@ main = do
       fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
       fullFriendsDir = fullLocalDir </> "friends"
 
+  -- create config dirs if missing
+  mapM_ (createDirectoryIfMissing True) [fullUserDir, fullLocalDir, fullStaticDir, fullFriendsDir]
   -- create HTTP manager cause we gonna need it?
   mgmt <- newTlsManager
   -- load all papers and notes
   userState <- readState fullUserDir
   -- load github username and oauth token
-  gc <- loadValueFromFile githubSpec (fullLocalDir </> "config")
+  let configFile = fullLocalDir </> "config"
+  haveConfigFile <- doesFileExist configFile
+  unless haveConfigFile (writeFile configFile "username: \"\"\noauth: \"\"")
+  gc <- loadValueFromFile githubSpec configFile
+  -- gc <- loadValueFromFile githubSpec (fullLocalDir </> "config")
   friendState <- readFriendState fullFriendsDir
   -- M.Map paperUID [username] so the front end can easily display friends who have notes on this paper
   let friendPapers = friendView friendState
-  print friendState
+  -- print friendState
   scotty 3000 $ do
          middleware logStdoutDev
          middleware $ staticPolicy (noDots >-> addBase "static")
          middleware $ staticPolicy (noDots >-> addBase (fullLocalDir </> "pageimages"))
 
+         -- this function always matches, then checks for empty gitconfig
+         -- can't possibly be fast to check for EVERY SINGLE REQUEST, what's easier/simpler ?
+         get (function $ const $ Just []) $ do
+                  -- is this really a good idea?
+                  gc <- liftIO $ loadValueFromFile githubSpec configFile
+                  unless ("" == (username gc) || ("" == (oauth gc))) next
+                  html . renderText $ pageTemplate "Set GitHub Configuration Values" authform
+
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
                   html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> friendspull >> paperstable (M.elems userState))
+
+         post "/setauth" $ do -- this isn't real secure
+                  liftIO $ print "yeah, this really works"
+                  username <- param "username"
+                  oauth <- param "oauth"
+                  -- https://github.com/glguy/config-schema/issues/2
+                  liftIO $ writeFile configFile ("username: \"" <> username <> "\"\noauth: \"" <> oauth <> "\"")
+                  gc <- liftIO $ loadValueFromFile githubSpec configFile
+                  html "Your credentials have been saved"
+                  redirect "/newuser"
 
          post "/paper" $ do
                   ps <- params

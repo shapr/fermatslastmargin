@@ -174,6 +174,23 @@ papersadd nowTime = do
               input_ [type_ "file", name_ "uploadedfile"]
               input_ [type_ "submit"]
 
+authform :: Monad m => HtmlT m ()
+authform = do
+  p_ "You will need to create a GitHub OAuth token, with scope \"public_repo\" please follow the instructions below:"
+  a_ [href_ "https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line"] "Creating a personal access token for the command line"
+  p_ ""
+  form_ [action_ "/setauth", method_ "post"] $ do
+             label_ "GitHub OAuth token"
+             input_ [type_ "text", name_ "oauth"]
+             label_ "GitHub username"
+             input_ [type_ "text", name_ "username"]
+             input_ [type_ "submit"]
+  p_ "Please confirm that your global git config has settings for both user.email and user.name. You can explicitly set these values with:"
+  code_ "git config --global user.name \"Mona Lisa\""
+  p_ ""
+  code_ "git config --global user.email \"mona@davinci.com\""
+
+
 notespush :: Monad m => HtmlT m ()
 notespush = a_ [href_ "/gitpush"] "Push notes to GitHub"
 
@@ -196,6 +213,7 @@ onepaper r = tr_ $
      tdit author
           where tdit f = td_ . toHtml $ f r
                 ruid = uid r
+
 
 -- ?doi=10.25&title=this+is+a+title&author=Shae+Erisson&pubdate=2019-01-01
 mbP :: [Param] -> Maybe Paper
@@ -318,6 +336,14 @@ getFriendRepos username token friendsdir mgmt = do
   cloneResults <- mapM (uncurry cloneRepo) needclones
   print $ show (length needpulls) <> " repos pulled, " <> show (length needclones) <> " new repos cloned."
   print $ "possible errors: " <> show pullResults <> show cloneResults
+
+-- new user code
+-- | Given a directory, run git pull in that directory.
+-- checkGitConfig :: FilePath -> IO (ExitCode, Text)
+checkGitConfig value = do -- value should be either "user.name" or "user.email"
+  (Nothing, Nothing, Nothing, pidc) <- createProcess (proc "git" ["config",value]) { cwd = Just ".", std_in = NoStream, std_out = NoStream, std_err = NoStream, close_fds = True}
+  exitCode <- waitForProcess pidc
+  return exitCode
 
 -- looks like names imported from Lib.Github are not automatically exported? who knew?!
 createDR = createDataRepo
