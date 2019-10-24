@@ -119,7 +119,7 @@ main = do
                   let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"
-                            Just p  -> pure $ maybe (Annotation "" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
+                            Just p  -> pure $ maybe (Annotation "Press Enter to edit this note" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json [final,friendnote] -- return an array of localuser note, and selected friend note. There must be a better way, argh
 
          get "/friends" $ do
