@@ -134,6 +134,7 @@ main = do
 
          get "/newuser" $ do
                   -- create the repo on github
+                  gc <- liftIO $ loadValueFromFile githubSpec configFile
                   createRes <- liftIO $ createDR (T.unpack $ oauth gc)
                   -- clone the repo from github into fullUserDir
                   case createRes of
