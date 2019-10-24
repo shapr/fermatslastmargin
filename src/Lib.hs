@@ -155,8 +155,9 @@ pageTemplate :: Monad m => Text -> HtmlT m a -> HtmlT m a
 pageTemplate title content = do
   doctype_
   html_ $ do
-    head_ $
+    head_ $ do
       title_ $ toHtml title
+      link_ [rel_ "stylesheet", href_ "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"]
     body_ content
 
 papersadd :: Monad m => Day -> HtmlT m ()

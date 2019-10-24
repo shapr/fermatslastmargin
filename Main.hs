@@ -111,7 +111,10 @@ main = do
                   ps <- params
                   userState <- liftIO $ readState fullUserDir
                   -- point free code below replaces a big pile of pattern matches on Maybe!
-                  let mbFriendnote = ((maybeGetAnnotation pagenum . notes) <=< M.lookup uid <=< (flip M.lookup friendState . TL.toStrict) <=< lookup "viewfriend") ps
+                  let mbFriendnote = maybeGetAnnotation pagenum . notes -- that friend's paper have any notes for this page?
+                                     <=< M.lookup uid -- does that friend have this paper?
+                                     <=< flip M.lookup friendState . TL.toStrict -- does that friend exist?
+                                     <=< lookup "viewfriend" $ ps -- is the user trying to view notes from a friend?
                       friendnote = maybe (Annotation "" pagenum uid) id mbFriendnote
                   let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
