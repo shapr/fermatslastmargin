@@ -28,13 +28,13 @@ import           Lib
 main :: IO ()
 main = do
   userHomeDir <- getHomeDirectory
-  let fullUserDir = userHomeDir </> ".fermatslastmargin/localuser"
-      fullLocalDir = userHomeDir </> ".fermatslastmargin"
-      fullStaticDir = userHomeDir </> ".fermatslastmargin/pageimages"
+  let fullLocalDir = userHomeDir </> ".fermatslastmargin"
+      fullUserDir = fullLocalDir </> "localuser"
+      fullStaticDir = fullLocalDir </> "pageimages"
       fullFriendsDir = fullLocalDir </> "friends"
 
   -- create config dirs if missing
-  mapM_ (createDirectoryIfMissing True) [fullUserDir, fullLocalDir, fullStaticDir, fullFriendsDir]
+  mapM_ (createDirectoryIfMissing True) [fullUserDir, fullStaticDir, fullFriendsDir]
   -- create HTTP manager cause we gonna need it?
   mgmt <- newTlsManager
   -- load all papers and notes

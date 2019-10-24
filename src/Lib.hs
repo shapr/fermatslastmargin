@@ -334,7 +334,7 @@ pullRepo fp = do
 -- dammit github, why is your API broke? oh I think I'm using the wrong field should be repoHtmlUrl? XXX fix this later!
 unstupid = T.replace "/repos" "" . T.replace "api." ""
 
-swizzle username oauth = T.replace "https://" ("https://" <> username <> ":" <> oauth)
+swizzle username oauth = T.replace "https://" ("https://" <> username <> ":" <> oauth <> "@")
 
 -- | returns IO [(username, https url to flmdata)]
 getFriendRepos :: Text -> Text -> String -> Manager -> IO ()
