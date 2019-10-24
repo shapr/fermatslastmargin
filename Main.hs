@@ -143,5 +143,6 @@ main = do
                   case createRes of
                     Left e -> html $ TL.pack $ show e
                     Right r -> do
-                            liftIO $ cloneRepo fullUserDir (unstupid $ (snd . pnRepo) r )
+                            liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
                             html "new user repo cloned"
+                                where oauthedremote = swizzle (username gc) (oauth gc)
