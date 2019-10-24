@@ -162,18 +162,26 @@ pageTemplate title content = do
 
 papersadd :: Monad m => Day -> HtmlT m ()
 papersadd nowTime = do
-  form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $ do
-              label_ "DOI"
-              input_ [type_ "text", name_ "doi"]
-              label_ "Title"
-              input_ [type_ "text", name_ "title"]
-              label_ "Authors"
-              input_ [type_ "text", name_ "author"]
-              label_ "Publication Date"
-              input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
-              label_ "PDF of file"
-              input_ [type_ "file", name_ "uploadedfile"]
-              input_ [type_ "submit"]
+  form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $
+      do
+        table_ $ do
+          tr_ $ do
+            td_ $ label_ "DOI"
+            td_ $ input_ [type_ "text", name_ "doi"]
+          tr_ $ do
+            td_ $ label_ "Title"
+            td_ $ input_ [type_ "text", name_ "title"]
+          tr_ $ do
+            td_ $ label_ "Authors"
+            td_ $ input_ [type_ "text", name_ "author"]
+          tr_ $ do
+            td_ $ label_ "Publication Date"
+            td_ $ input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
+          tr_ $ do
+            td_ $ label_ "PDF of file"
+            td_ $ input_ [type_ "file", name_ "uploadedfile"]
+          tr_ $ do
+            td_ $ input_ [type_ "submit"]
 
 authform :: Monad m => HtmlT m ()
 authform = do

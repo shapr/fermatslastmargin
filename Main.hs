@@ -11,7 +11,7 @@ import qualified Data.Map.Strict                      as M
 import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
-import           Lucid                                (renderText)
+import           Lucid                                (br_, renderText)
 import           Network.HTTP.Client.TLS              (newTlsManager)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
@@ -65,7 +65,7 @@ main = do
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> friendspull >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> br_ [] >> friendspull >> paperstable (M.elems userState))
 
          post "/setauth" $ do -- this isn't real secure
                   liftIO $ print "yeah, this really works"
