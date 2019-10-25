@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   width="728" height="678" viewBox="0 2 728 678">
+  <metadata><rdf:RDF><cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title>Valknut</dc:title>
+  </cc:Work></rdf:RDF></metadata>
+  <path d="M19.5029,656.329H569.11L480.396,504.189H399.972L444.412,585.031H145.661L188.856,504.189H105.782ZM19.6543,494.568H195.586L235.73,423.863H143.757L293.602,164.479L340.068,241.734L381.741,169.869L293.602,19.5791ZM159.778,414.447H241.317L293.602,325.824L346.277,414.447H427.501L293.602,183.811ZM162.142,575.714H428.897L388.89,504.189H284.518L335.293,414.447L293.602,344.062ZM300.604,494.568H566.603L433.378,261.951L391.708,332.126L443.005,423.863H340.345ZM345.934,252.893L386.214,322.502L433.378,243.743L583.604,504.189H492.989L534.392,575.714H708.421L433.378,100.098Z"/>
+</svg>

@@ -1,0 +1,69 @@
+cabal-version:      2.4
+name:               spookel
+version:            0.1.0.0
+synopsis:           hook javascript to pass url to server
+homepage:           http://github.com/shapr/spookel
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Shae Erisson
+maintainer:         shae@scannedinavian.com
+category:           Web
+extra-source-files: CHANGELOG.md
+
+library
+  build-depends:
+    , aeson
+    , base                   ^>=4.12.0.0
+    , bytestring
+    , config-schema
+    , config-value
+    , containers
+    , directory
+    , extra
+    , filemanip
+    , filepath
+    , github
+    , http-client-tls
+    , http-client
+    , http-types
+    , lucid
+    , process
+    , scotty
+    , text
+    , time
+    , wai-middleware-static
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  exposed-modules:
+    Lib
+    Lib.Github
+
+  ghc-options:
+    -fwarn-unused-imports -ferror-spans -fshow-loaded-modules
+
+executable spookel
+  main-is:          Main.hs
+  build-depends:
+    , aeson
+    , base                   ^>=4.12.0.0
+    , bytestring
+    , config-schema
+    , containers
+    , directory
+    , filepath
+    , http-client-tls
+    , http-client
+    , lucid
+    , resourcet
+    , scotty
+    , spookel
+    , text
+    , time
+    , unix-time              >=0        && <=0.3.8
+    , wai-extra
+    , wai-middleware-static
+
+  default-language: Haskell2010
+  ghc-options:
+    -fwarn-unused-imports -threaded -ferror-spans -fshow-loaded-modules
