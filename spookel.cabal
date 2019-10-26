@@ -1,9 +1,9 @@
 cabal-version:      2.4
-name:               spookel
+name:               fermatslastmargin
 version:            0.1.0.0
 synopsis:           hook javascript to pass url to server
-homepage:           http://github.com/shapr/spookel
-license:            BSD-3-Clause
+homepage:           http://github.com/shapr/fermatslastmargin
+license:            AGPL-3.0-or-later
 license-file:       LICENSE
 author:             Shae Erisson
 maintainer:         shae@scannedinavian.com
@@ -42,7 +42,7 @@ library
   ghc-options:
     -fwarn-unused-imports -ferror-spans -fshow-loaded-modules
 
-executable spookel
+executable fermatslastmargin
   main-is:          Main.hs
   build-depends:
     , aeson
@@ -57,7 +57,7 @@ executable spookel
     , lucid
     , resourcet
     , scotty
-    , spookel
+    , fermatslastmargin
     , text
     , time
     , unix-time              >=0        && <=0.5
