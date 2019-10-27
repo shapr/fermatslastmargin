@@ -107,7 +107,7 @@ readPaper fp = do
 -- | forward slash is not allowed in any filenames, so we substitute underscore _
 writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
-  let fullDir = fp </> (T.unpack $ uid p)
+  let fullDir = fp </> T.unpack (uid p)
   _ <- createDirectoryIfMissing True fullDir
   I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
   return fullDir
@@ -164,24 +164,23 @@ pageTemplate title content = do
 papersadd :: Monad m => Day -> HtmlT m ()
 papersadd nowTime = do
   form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $
-      do
-        table_ $ do
-          tr_ $ do
-            td_ $ label_ "DOI"
-            td_ $ input_ [type_ "text", name_ "doi"]
-          tr_ $ do
-            td_ $ label_ "Title"
-            td_ $ input_ [type_ "text", name_ "title"]
-          tr_ $ do
-            td_ $ label_ "Authors"
-            td_ $ input_ [type_ "text", name_ "author"]
-          tr_ $ do
-            td_ $ label_ "Publication Date"
-            td_ $ input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
-          tr_ $ do
-            td_ $ label_ "PDF of file"
-            td_ $ input_ [type_ "file", name_ "uploadedfile"]
-          tr_ $ do
+      table_ $ do
+        tr_ $ do
+          td_ $ label_ "DOI"
+          td_ $ input_ [type_ "text", name_ "doi"]
+        tr_ $ do
+          td_ $ label_ "Title"
+          td_ $ input_ [type_ "text", name_ "title"]
+        tr_ $ do
+          td_ $ label_ "Authors"
+          td_ $ input_ [type_ "text", name_ "author"]
+        tr_ $ do
+          td_ $ label_ "Publication Date"
+          td_ $ input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
+        tr_ $ do
+          td_ $ label_ "PDF of file"
+          td_ $ input_ [type_ "file", name_ "uploadedfile"]
+        tr_ $
             td_ $ input_ [type_ "submit"]
 
 authform :: Monad m => HtmlT m ()
@@ -238,10 +237,10 @@ mbP d = let upl = flip lookup d in
 -- dunno if this is any better
 mbP' :: [Param] -> Maybe Paper
 mbP' ps = Paper
-          <$> (supl "doi")
-          <*> (supl "author")
+          <$> supl "doi"
+          <*> supl "author"
           <*> (join $ readMaybe <$> (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
-          <*> (supl "title")
+          <*> supl "title"
           <*> Just []
     where upl = flip lookup ps
           supl a = TL.toStrict <$> upl a
@@ -272,7 +271,7 @@ renameZ fp = do
 
 -- | should convert like this: foo/bar/page-0001.png -> foo/bar/page-1.png
 changeWholePath fp =  uncurry combine . fixName $ splitFileName fp
-    where fixName = \(x,y)-> (x,fixZ y)
+    where fixName (x,y) = (x,fixZ y)
 
 -- ugly, but works, kinda?
 fixZ n@('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs

@@ -13,7 +13,7 @@ extra-source-files: CHANGELOG.md
 library
   build-depends:
     , aeson
-    , base                  >= 4.11 && < 4.13
+    , base                   >=4.11 && <4.13
     , bytestring
     , config-schema
     , config-value
@@ -22,9 +22,9 @@ library
     , extra
     , filemanip
     , filepath
-    , github                >=0.22 && < 0.23
-    , http-client-tls
+    , github                 ^>=0.22
     , http-client
+    , http-client-tls
     , http-types
     , lucid
     , process
@@ -46,21 +46,21 @@ executable fermatslastmargin
   main-is:          Main.hs
   build-depends:
     , aeson
-    , base                   >= 4.11 && < 4.13
+    , base                   >=4.11 && <4.13
     , bytestring
     , config-schema
     , containers
     , directory
+    , fermatslastmargin
     , filepath
-    , http-client-tls
     , http-client
+    , http-client-tls
     , lucid
     , resourcet
     , scotty
-    , fermatslastmargin
     , text
     , time
-    , unix-time              >=0        && <=0.5
+    , unix-time              >=0    && <=0.5
     , wai-extra
     , wai-middleware-static
 
