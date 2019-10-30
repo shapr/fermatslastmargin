@@ -1,0 +1,78 @@
+h1 {
+    color: #06144E;
+    font-family: "Times New Roman", serif;
+    margin: 0.1em 0.5em;
+    text-shadow: 1px 1px #bfbfbf;
+}
+h2 {
+    margin: 0.3em 0 0;
+    padding: 0.1em 1em 0.3em;
+    background-color: #e54b04;
+    color: white;
+}
+
+/* Tables */
+table {
+    width: 97%;
+    margin-top: 1em;
+}
+th, td {
+    padding-left: 1em;
+}
+table.paperlist {
+    margin:  2em auto 1em;
+}
+.paperlist thead {
+    background-color: #e54b04;
+    color: white;
+}
+.paperlist tr {
+    padding: 8px 0;
+}
+.paperlist tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Form stuff */
+form {
+    padding: 1em;
+    width: 70%;
+    max-width: 850px;
+    min-width: 300px;
+}
+form label {
+    float: right;
+}
+form input[type=text]{
+    width: 100%;
+}
+form input[type=submit] {
+    float: right;
+    margin: 0.5em 0 1.2em;
+}
+
+/* Buttons */
+.git {
+    margin-left: 1em;
+    padding: 10px 15px;
+    background-color: #007bff;
+    border-radius: 1em;
+    color: white;
+    font-weight: bold;
+}
+a.git:hover {
+    color: white;
+    background-color: #e54b04;
+    text-decoration: none;
+}
+a.git:active {
+    background-color: #007bff;
+    position: relative;
+    top: 4px;
+}
+.gitpush {
+    margin-left: 3em;
+}
+.gitpull {
+    margin-bottom: 2em;
+}
