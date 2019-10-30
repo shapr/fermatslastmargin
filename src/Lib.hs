@@ -107,7 +107,7 @@ readPaper fp = do
 -- | forward slash is not allowed in any filenames, so we substitute underscore _
 writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
-  let fullDir = fp </> (T.unpack $ uid p)
+  let fullDir = fp </> T.unpack (uid p)
   _ <- createDirectoryIfMissing True fullDir
   I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
   return fullDir
@@ -158,10 +158,13 @@ pageTemplate title content = do
     head_ $ do
       title_ $ toHtml title
       link_ [rel_ "stylesheet", href_ "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"]
+      link_ [rel_ "stylesheet", href_ "style.css"]
     body_ content
 
 papersadd :: Monad m => Day -> HtmlT m ()
 papersadd nowTime = do
+  h1_ [class_ "site-title"] "Fermat's Last Margin"
+  h2_ [class_ "page-title"] "Add a paper"
   form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $
       do
         table_ $ do
@@ -176,11 +179,12 @@ papersadd nowTime = do
             td_ $ input_ [type_ "text", name_ "author"]
           tr_ $ do
             td_ $ label_ "Publication Date"
-            td_ $ input_ [type_ "text", name_ "pubdate", value_ (pack . show $ nowTime)]
+            td_ $ input_ [type_ "date", name_ "pubdate", value_ (pack . show $ nowTime)]
           tr_ $ do
             td_ $ label_ "PDF of file"
             td_ $ input_ [type_ "file", name_ "uploadedfile"]
           tr_ $ do
+            td_ $ span_ ""
             td_ $ input_ [type_ "submit"]
 
 authform :: Monad m => HtmlT m ()
@@ -199,18 +203,21 @@ authform = do
   p_ ""
   code_ "git config --global user.email \"mona@davinci.com\""
 
-
 notespush :: Monad m => HtmlT m ()
-notespush = a_ [href_ "/gitpush"] "Push notes to GitHub"
+notespush = a_ [href_ "/gitpush", class_ "git gitpush"] "Push notes to GitHub"
 
 friendspull :: Monad m => HtmlT m ()
-friendspull = a_ [href_ "/gitpull"] "Pull friends' notes from GitHub"
+friendspull = a_ [href_ "/gitpull", class_ "git gitpull"] "Pull friends' notes from GitHub"
 
 paperstable :: Monad m => [Paper] -> HtmlT m ()
 paperstable rows =
-  table_ $ do
-    tr_ $
-      th_ "Rows"
+  table_ [class_ "paperlist"] $ do
+    thead_ $
+      tr_ $ do
+        th_ "Paper Title"
+        th_ "Pub Date"
+        th_ "DOI"
+        th_ "Authors"
     sequence_ $ onepaper <$> rows
 
 onepaper :: Monad m => Paper -> HtmlT m ()
@@ -237,10 +244,10 @@ mbP d = let upl = flip lookup d in
 -- dunno if this is any better
 mbP' :: [Param] -> Maybe Paper
 mbP' ps = Paper
-          <$> (supl "doi")
-          <*> (supl "author")
+          <$> supl "doi"
+          <*> supl "author"
           <*> (join $ readMaybe <$> (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
-          <*> (supl "title")
+          <*> supl "title"
           <*> Just []
     where upl = flip lookup ps
           supl a = TL.toStrict <$> upl a
@@ -271,7 +278,7 @@ renameZ fp = do
 
 -- | should convert like this: foo/bar/page-0001.png -> foo/bar/page-1.png
 changeWholePath fp =  uncurry combine . fixName $ splitFileName fp
-    where fixName = \(x,y)-> (x,fixZ y)
+    where fixName (x,y) = (x,fixZ y)
 
 -- ugly, but works, kinda?
 fixZ n@('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs

@@ -8,10 +8,11 @@ import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
 import qualified Data.Map.Strict                      as M
+import           Data.Maybe                           (fromMaybe)
 import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
-import           Lucid                                (br_, renderText)
+import           Lucid                                (renderText)
 import           Network.HTTP.Client.TLS              (newTlsManager)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
@@ -65,7 +66,7 @@ main = do
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> br_ [] >> friendspull >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> friendspull >> paperstable (M.elems userState))
 
          post "/setauth" $ do -- this isn't real secure
                   liftIO $ print "yeah, this really works"
@@ -100,7 +101,7 @@ main = do
                       mbPaper = M.lookup puid userState
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
-                             Just p  -> liftIO $ writePaper fullUserDir $ p { notes = (upsertAnnotation jd (notes p))}
+                             Just p  -> liftIO $ writePaper fullUserDir $ p { notes = upsertAnnotation jd (notes p)}
                   liftIO $ commitEverything fullUserDir
                   json final
 
@@ -119,7 +120,7 @@ main = do
                   let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"
-                            Just p  -> pure $ maybe (Annotation "" pagenum uid) id (maybeGetAnnotation pagenum (notes p)) -- ugh!
+                            Just p  -> pure $ fromMaybe (Annotation "Press Enter to edit this note" pagenum uid) (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json [final,friendnote] -- return an array of localuser note, and selected friend note. There must be a better way, argh
 
          get "/friends" $ do

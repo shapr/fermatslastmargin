@@ -1,5 +1,9 @@
-# spookel
-prototype of research paper annotation tool
+# Fermat's Last Margin
+A tool for annotating research papers (and more) and sharing those annotations (via git for starters)
+
+[Fermat's Last Theorem](https://en.wikipedia.org/wiki/Fermat%27s_Last_Theorem) was captioned "I have a truly marvelous demonstration of this proposition which this margin is too narrow to contain."
+
+This this tool intends to be an infinite margin.
 
 ## prototype
 This code will be moving to http://github.com/shapr/fermatslastmargin after Halloween 2019.
@@ -26,8 +30,10 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [ ] search crossref.org by title to get DOI
 
 # Requirements
+- git
 - poppler-utils (apt install poppler-utils)
 - zlib (apt install zlib1g-dev)
+- Maybe Linux? This hasn't been tested on Mac yet!
 
 # Project Implementation
 
