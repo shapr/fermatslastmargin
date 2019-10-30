@@ -5,8 +5,18 @@ A tool for annotating research papers (and more) and sharing those annotations (
 
 This this tool intends to be an infinite margin.
 
-## prototype
-This code will be moving to http://github.com/shapr/fermatslastmargin after Halloween 2019.
+# WHY WOULD I USE THIS?
+
+Do you read many research papers or PhD theses? If yes, you might want to use this tool!
+
+I like to write in the margins of my books and printed research papers.
+I want to read what other people have to say about a paper after I write down my own notes.
+I want to be able to search my notes. I want to be able to share my notes!
+I want to be able to remember why I downloaded a paper years later.
+
+## Why are notes separate from the paper itself?
+
+Distributing PDFs will get you sued for lots of money ( https://en.wikipedia.org/wiki/Sci-Hub#United_States ). I don't want to get sued.
 
 ## Getting Started
 * install [poppler-utils](https://poppler.freedesktop.org/), or more specifically, make sure the pdftocairo binary from poppler-utils is in your `$PATH`
@@ -29,11 +39,15 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [ ] search arxiv by title to get DOI
 - [ ] search crossref.org by title to get DOI
 
-# Requirements
+# Dependencies
 - git
 - poppler-utils (apt install poppler-utils)
 - zlib (apt install zlib1g-dev)
 - Maybe Linux? This hasn't been tested on Mac yet!
+
+## Mac
+- brew install poppler
+- brew install zlib
 
 # Project Implementation
 
