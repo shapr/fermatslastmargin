@@ -116,7 +116,7 @@ main = do
                                      <=< M.lookup uid -- does that friend have this paper?
                                      <=< flip M.lookup friendState . TL.toStrict -- does that friend exist?
                                      <=< lookup "viewfriend" $ ps -- is the user trying to view notes from a friend?
-                      friendnote = maybe (Annotation "" pagenum uid) id mbFriendnote
+                      friendnote = fromMaybe (Annotation "" pagenum uid) mbFriendnote
                   let mbPaper = M.lookup uid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"

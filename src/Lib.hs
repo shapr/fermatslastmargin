@@ -12,17 +12,21 @@ module Lib where
 import           Config.Schema
 import           Control.Monad         (filterM, join)
 import           Control.Monad.Extra
-import           Data.Aeson            (FromJSON, ToJSON, decodeStrict)
+import           Data.Aeson            (FromJSON (..), ToJSON, Value (..),
+                                        decodeStrict, (.:), (.:?))
 import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
+import qualified Data.ByteString.Lazy  as BSL
+import           Data.List             (intersperse)
 import qualified Data.Map.Strict       as M
-import           Data.Maybe            (catMaybes, isJust, listToMaybe)
+import           Data.Maybe            (catMaybes, fromMaybe, isJust,
+                                        listToMaybe)
 import           Data.Text             (Text, pack)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf8)
 import qualified Data.Text.Lazy        as TL
 import           Data.Text.Lazy.IO     as I
-import           Data.Time.Calendar    (Day)
+import           Data.Time.Calendar    (Day, fromGregorian)
 import           GHC.Generics
 import           Lib.Github
 import           Lucid
@@ -366,3 +370,69 @@ checkGitConfig value = do -- value should be either "user.name" or "user.email"
 -- looks like names imported from Lib.Github are not automatically exported? who knew?!
 createDR = createDataRepo
 pnRepo = pairNameRepo
+
+-- search result code here, probably needs to be in its own module
+
+
+data Wrapper = Wrapper { status :: T.Text
+                 , message      :: Message
+                 } deriving (Show, Eq, Ord)
+instance FromJSON Wrapper where
+    parseJSON (Object v) = Wrapper <$> v .: "status" <*> v .: "message"
+    parseJSON _          = error "we didn't do this yet!"
+
+data Message = Message {
+      total_result :: Integer
+    , items        :: [SResult]
+    } deriving (Show, Ord, Eq)
+instance FromJSON Message where
+    parseJSON (Object v) = Message <$> v .: "total-results" <*> v .: "items"
+    parseJSON _          = error "no"
+
+data SResult = SResult {
+      doi     :: T.Text
+    , page    :: Maybe T.Text
+    , stitle  :: [T.Text]
+    , volume  :: Maybe T.Text
+    , authors :: Maybe [Author]
+    , pubDate :: Maybe PubDate
+    } deriving (Show, Eq, Ord)
+instance FromJSON SResult where
+    parseJSON (Object v) = SResult
+                           <$> v .: "DOI"
+                           <*> v .:? "page"
+                           <*> v .: "title"
+                           <*> v .:? "volume"
+                           <*> v .:? "author"
+                           <*> v .:? "published-print"
+    parseJSON _          = error "bad SResult"
+
+data Author = Author {
+      given  :: Maybe T.Text
+    , family :: T.Text
+    } deriving (Show, Eq, Ord)
+instance FromJSON Author where
+    parseJSON (Object v) = Author
+                           <$> v .:? "given"
+                           <*> v .: "family"
+    parseJSON _          = error "bad author"
+
+newtype PubDate = PubDate [[Int]] deriving (Eq, Ord, Show)
+instance FromJSON PubDate where
+    parseJSON (Object v) = PubDate <$> v .: "date-parts"
+    parseJSON _          = error "bad parseJSON for PubDate"
+
+converter :: SResult -> Paper
+converter s = Paper (doi s) (mkAuthors $ authors s) (mkPubDate $ pubDate s) (mkTitle $ stitle s) []
+    where mkTitle stitle = T.unwords stitle
+
+mkPubDate ::Maybe PubDate -> Day
+mkPubDate mbpd = foldl1 min $ buildparts <$> maybe [[1000,01,01]] (\(PubDate x) -> x) mbpd
+    where buildparts ps = greg $ take 3 (ps <> repeat 0)
+          greg [y,m,d] = fromGregorian (toInteger y) m d
+
+mkAuthors :: Maybe [Author] -> T.Text
+mkAuthors mbAs = T.unwords $ intersperse "," $ mkOneAuthor <$> (fromMaybe [] mbAs)
+
+mkOneAuthor :: Author -> T.Text
+mkOneAuthor a = fromMaybe "" (given a) <> " " <> family a
