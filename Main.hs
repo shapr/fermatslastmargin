@@ -45,7 +45,6 @@ main = do
   haveConfigFile <- doesFileExist configFile
   unless haveConfigFile (writeFile configFile "username: \"\"\noauth: \"\"")
   gc <- loadValueFromFile githubSpec configFile
-  -- gc <- loadValueFromFile githubSpec (fullLocalDir </> "config")
   friendState <- readFriendState fullFriendsDir
   -- M.Map paperUID [username] so the front end can easily display friends who have notes on this paper
   let friendPapers = friendView friendState
@@ -105,7 +104,6 @@ main = do
                   liftIO $ commitEverything fullUserDir
                   json final
 
-         -- didn't see this coming, too bad DOI has forward slash that makes everything a huge pain
          get "/getannotate" $ do -- this should really be a GET, not a POST
                   pagenum <- param "pagenum"
                   uid <- param "paperuid"
@@ -129,9 +127,9 @@ main = do
 
          get "/gitpush" $ do
                   (exitCode, result) <- liftIO $ pushEverything fullUserDir
-                  html $ case exitCode of
-                           ExitSuccess -> "Successfully pushed to github"
-                           _           -> "Failed to push to github"
+                  case exitCode of
+                    ExitSuccess -> redirect "/"
+                    _           -> html "Failed to push to github"
          get "/gitpull" $ do
                   liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir mgmt
                   redirect "/" -- should probably report problems someday
@@ -142,8 +140,8 @@ main = do
                   createRes <- liftIO $ createDR (T.unpack $ oauth gc)
                   -- clone the repo from github into fullUserDir
                   case createRes of
-                    Left e -> html $ TL.pack $ show e
+                    Left e -> html $ "There's a problem: " <> (TL.pack $ show e)
                     Right r -> do
                             liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
-                            html "new user repo cloned"
+                            redirect "/"
                                 where oauthedremote = swizzle (username gc) (oauth gc)

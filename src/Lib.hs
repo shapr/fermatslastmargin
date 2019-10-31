@@ -194,7 +194,7 @@ papersadd nowTime = do
 authform :: Monad m => HtmlT m ()
 authform = do
   p_ "You will need to create a GitHub OAuth token, with scope \"public_repo\" please follow the instructions below:"
-  a_ [href_ "https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line"] "Creating a personal access token for the command line"
+  a_ [href_ "https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line", target_ "_blank"] "Creating a personal access token for the command line"
   p_ ""
   form_ [action_ "/setauth", method_ "post"] $ do
              label_ "GitHub OAuth token"
@@ -250,7 +250,7 @@ mbP' :: [Param] -> Maybe Paper
 mbP' ps = Paper
           <$> supl "doi"
           <*> supl "author"
-          <*> (join $ readMaybe <$> (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
+          <*> (join $ readMaybe =<< (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
           <*> supl "title"
           <*> Just []
     where upl = flip lookup ps
@@ -423,16 +423,15 @@ instance FromJSON PubDate where
     parseJSON _          = error "bad parseJSON for PubDate"
 
 converter :: SResult -> Paper
-converter s = Paper (doi s) (mkAuthors $ authors s) (mkPubDate $ pubDate s) (mkTitle $ stitle s) []
-    where mkTitle stitle = T.unwords stitle
+converter s = Paper (doi s) (mkAuthors $ authors s) (mkPubDate $ pubDate s) (T.unwords $ stitle s) []
 
 mkPubDate ::Maybe PubDate -> Day
-mkPubDate mbpd = foldl1 min $ buildparts <$> maybe [[1000,01,01]] (\(PubDate x) -> x) mbpd
+mkPubDate mbpd = minimum $ buildparts <$> maybe [[1000,01,01]] (\(PubDate x) -> x) mbpd
     where buildparts ps = greg $ take 3 (ps <> repeat 0)
           greg [y,m,d] = fromGregorian (toInteger y) m d
 
 mkAuthors :: Maybe [Author] -> T.Text
-mkAuthors mbAs = T.unwords $ intersperse "," $ mkOneAuthor <$> (fromMaybe [] mbAs)
+mkAuthors mbAs = T.unwords $ intersperse "," $ mkOneAuthor <$> fromMaybe [] mbAs
 
 mkOneAuthor :: Author -> T.Text
 mkOneAuthor a = fromMaybe "" (given a) <> " " <> family a

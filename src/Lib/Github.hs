@@ -44,8 +44,7 @@ findRepos' username token mgmt =
 
 createDataRepo oauthToken = do
   let auth = GitHub.OAuth . fromString $ oauthToken
-  res <- Repos.createRepo' auth flmdatarepo
-  pure res
+  Repos.createRepo' auth flmdatarepo
 
 -- empty flmdata repo for initial startup
 flmdatarepo = NewRepo {
