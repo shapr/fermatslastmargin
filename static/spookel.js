@@ -97,7 +97,7 @@ document.addEventListener('keydown', (e) => {
 	location.href = builddown();
     }
     if (e.key == "PageUp") {
-	if (pagenum <= 1) { location.href = buildup(); // hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" uid;
+	if (pagenum >= 1) { location.href = buildup(); // hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" uid;
 			  } else { location.href = hereagain() + "?pagenum=1" + "&uid=" + uid;
 				   // location.href = buildurl();
 				 }
