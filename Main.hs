@@ -83,13 +83,14 @@ main = do
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
-                                       liftIO $ writeState fullUserDir $ M.insert (uid thePaper) thePaper userState
-                                       liftIO $ commitEverything fullUserDir -- just wrote paper.json, now stuff it into git
-                                       let paperDir = fullStaticDir </> T.unpack (uid thePaper)
-                                       liftIO $ createDirectoryIfMissing True paperDir -- gotta have this
-                                       liftIO $ BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
-                                       liftIO $ renderPageImages paperDir
-                                       liftIO $ print "should have worked now!"
+                                       liftIO $ do
+                                         writeState fullUserDir $ M.insert (uid thePaper) thePaper userState
+                                         commitEverything fullUserDir -- just wrote paper.json, now stuff it into git
+                                         let paperDir = fullStaticDir </> T.unpack (uid thePaper)
+                                         createDirectoryIfMissing True paperDir -- gotta have this
+                                         BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
+                                         renderPageImages paperDir
+                                         print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
 
