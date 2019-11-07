@@ -9,8 +9,10 @@
       <tr>
 	<td> <a href="/" class="backtolist">&lt; back to list</a> </td>
 	<td>
-	  <table id="friends"></table> </td>
-	<td>
+	  <table id="friends"></table>
+	</td>
+	<td>Press Enter to edit per-page notes, Enter again to save. PgUp and PgDn to change pages.</td>
+	<td style="float: right">
 	  <form action="/updatepdf" method="post" enctype="multipart/form-data">
 	    <input type="hidden" id="uidtoupdate" name="uidtoupdate" value="" onchange="form.submit()"/>
 	    <input type="file" name="uploadedfile"/>
