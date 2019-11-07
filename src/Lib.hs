@@ -13,7 +13,7 @@ import           Config.Schema
 import           Control.Monad         (filterM, join)
 import           Control.Monad.Extra
 import           Data.Aeson            (FromJSON (..), ToJSON, Value (..),
-                                        decodeStrict, (.:), (.:?))
+                                        decode, decodeStrict, (.:), (.:?))
 import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as BSL
@@ -48,6 +48,9 @@ type FLMState = M.Map Text Paper -- local user state
 -- | Map from friend name to FLMState
 type FriendState = M.Map Text FLMState
 
+emptyPaper :: Paper
+emptyPaper = Paper "" "" (read "1000-01-01") "" []
+
 data Paper = Paper {
       uid       :: Text -- usually DOI
     , author    :: Text -- really needs to be [Text] at some point
@@ -63,20 +66,21 @@ data Annotation = Annotation {
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 -- read and save state
+maybeGetPage :: Int -> [Annotation] -> Maybe Text
 maybeGetPage pageNum anns = lookup pageNum annPairs
     where annPairs = zip (pageNumber <$> anns) (content <$> anns)
 
+maybeGetAnnotation :: Int -> [Annotation] -> Maybe Annotation
 maybeGetAnnotation pageNum anns = lookup pageNum annPairs
     where annPairs = zip (pageNumber <$> anns) anns
 
 upsertAnnotation :: Annotation -> [Annotation] -> [Annotation]
-upsertAnnotation a@(Annotation c pnum puid) oldAnns = if doesExist then replaceAnnotation pnum c oldAnns else a:oldAnns
+upsertAnnotation a@(Annotation c pnum _) oldAnns = if doesExist then replaceAnnotation pnum c oldAnns else a:oldAnns
     where doesExist = isJust $ maybeGetPage pnum oldAnns
 
-
 replaceAnnotation :: Int -> Text -> [Annotation] -> [Annotation]
-replaceAnnotation i content [] = []
-replaceAnnotation i content (a@(Annotation c p u):anns) = if p == i then Annotation content p u : anns else a : replaceAnnotation i content anns
+replaceAnnotation _ _ [] = []
+replaceAnnotation i content (a@(Annotation _ p u):anns) = if p == i then Annotation content p u : anns else a : replaceAnnotation i content anns
 
 -- | read the names of the directories in the config directory
 readState :: FilePath -> IO FLMState
@@ -144,14 +148,10 @@ filterDirectory = filterM doesDirectoryExist
 -- | [("/home/shae","shae"),("/home/plato","plato")] -> [("/home/shae","shae")]
 -- I don't much like this, but I need it anyway
 filterDirectoryPair :: [(FilePath, FilePath)] -> IO [(FilePath, FilePath)]
-filterDirectoryPair = filterM (\(a,b) -> doesDirectoryExist a)
+filterDirectoryPair = filterM (\(a,_) -> doesDirectoryExist a)
 
 filterFile :: [FilePath] -> IO [FilePath]
 filterFile = filterM doesFileExist
-
--- well this won't work anymore, will it?
-getContent = content
-getPaperId = uid
 
 -- html page stuff
 
@@ -162,6 +162,8 @@ pageTemplate title content = do
     head_ $ do
       title_ $ toHtml title
       link_ [rel_ "stylesheet", href_ "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"]
+      script_ [src_ "https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js",type_ "text/javascript"] ("" :: T.Text)
+      script_ [src_ "/search.js",type_ "text/javascript"] ("" :: T.Text)
       link_ [rel_ "stylesheet", href_ "style.css"]
     body_ content
 
@@ -190,6 +192,15 @@ papersadd nowTime = do
           tr_ $ do
             td_ $ span_ ""
             td_ $ input_ [type_ "submit"]
+
+papersearch :: Monad m => HtmlT m ()
+papersearch = do
+  h2_ [class_ "page-title"] "Search for a paper"
+  form_ [action_ "/crossref", method_ "get"] $ do
+      table_ $ do
+                tr_ $ do
+                  td_ $ label_ "Title words"
+                  td_ $ input_ [type_ "text", name_ "searchterms"]
 
 authform :: Monad m => HtmlT m ()
 authform = do
@@ -222,28 +233,49 @@ paperstable rows =
         th_ "Pub Date"
         th_ "DOI"
         th_ "Authors"
-    sequence_ $ onepaper <$> rows
+    sequence_ $ viewPaper <$> rows
 
-onepaper :: Monad m => Paper -> HtmlT m ()
-onepaper r = tr_ $
-  do td_ $ do
-       a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> uid r)] (toHtml $ title r)
+viewPaper :: Monad m => Paper -> HtmlT m ()
+viewPaper r = tr_ $
+  do td_ $ a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> uid r)] (toHtml $ title r)
      tdit (T.pack . show . published :: Paper -> Text)
      tdit uid
      tdit author
           where tdit f = td_ . toHtml $ f r
-                ruid = uid r
 
+foundpaperstable :: Monad m => [Paper] -> HtmlT m ()
+foundpaperstable rows = do
+  table_ [class_ "paperlist"] $ do
+    thead_ $
+      tr_ $ do
+        th_ "Save?"
+        th_ "Paper Title"
+        th_ "Pub Date"
+        th_ "DOI"
+        th_ "Authors"
+    sequence_ $ foundPaper <$> rows
+  input_ [id_ "save", type_ "submit", value_ "Save Selected Papers"]
+
+foundPaper :: Monad m => Paper -> HtmlT m ()
+foundPaper r = tr_ $
+  do td_ $ do
+       input_ [name_ "selectedpaper", type_ "checkbox", value_ (TL.toStrict $ encodeToLazyText r)]
+       -- input_ [id_ "papervalue", type_ "hidden", ]
+     td_ $ a_ [href_ ("https://doi.org/" <> uid r), target_ "_blank"] (toHtml $ title r)
+     tdit (T.pack . show . published :: Paper -> Text)
+     tdit uid
+     tdit author
+          where tdit f = td_ . toHtml $ f r
 
 -- ?doi=10.25&title=this+is+a+title&author=Shae+Erisson&pubdate=2019-01-01
 mbP :: [Param] -> Maybe Paper
 mbP d = let upl = flip lookup d in
-        do d <- upl "doi"
+        do doi <- upl "doi"
            t <- upl "title"
            a <- upl "author"
            pd <- upl "pubdate"
            mpd <- readMaybe $ TL.unpack pd -- there's got to be a better way
-           return $ Paper (TL.toStrict d) (TL.toStrict a) mpd (TL.toStrict t) []
+           return $ Paper (TL.toStrict doi) (TL.toStrict a) mpd (TL.toStrict t) []
 
 -- dunno if this is any better
 mbP' :: [Param] -> Maybe Paper
@@ -261,7 +293,8 @@ findPaper :: FilePath -> FilePath -> IO [FilePath]
 findPaper top match = find always (fileName ~~? match) top
 
 -- random useful thing
-third (a,b,c) = c
+third :: (a, b, c) -> c
+third (_,_,c) = c
 
 -- convert a file into static page images
 renderPageImages :: FilePath -> IO (ExitCode, Text)
@@ -281,10 +314,12 @@ renameZ fp = do
   mapM_ (renameWith changeWholePath) names
 
 -- | should convert like this: foo/bar/page-0001.png -> foo/bar/page-1.png
+changeWholePath :: FilePath -> FilePath
 changeWholePath fp =  uncurry combine . fixName $ splitFileName fp
     where fixName (x,y) = (x,fixZ y)
 
 -- ugly, but works, kinda?
+fixZ :: [Char] -> [Char]
 fixZ n@('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
 fixZ n                          = n
 
@@ -362,18 +397,24 @@ getFriendRepos username token friendsdir mgmt = do
 -- new user code
 -- | Given a directory, run git pull in that directory.
 -- checkGitConfig :: FilePath -> IO (ExitCode, Text)
+checkGitConfig :: String -> IO ExitCode
 checkGitConfig value = do -- value should be either "user.name" or "user.email"
   (Nothing, Nothing, Nothing, pidc) <- createProcess (proc "git" ["config",value]) { cwd = Just ".", std_in = NoStream, std_out = NoStream, std_err = NoStream, close_fds = True}
   exitCode <- waitForProcess pidc
   return exitCode
 
 -- looks like names imported from Lib.Github are not automatically exported? who knew?!
+
 createDR = createDataRepo
 pnRepo = pairNameRepo
+decodeSR :: BSL.ByteString -> Maybe Wrapper
+decodeSR = decode
 
 -- search result code here, probably needs to be in its own module
-
-
+-- The Aeson code below is from an hour long pairing session with @maxhallinan
+-- thanks for coming up with this idea and convincing me it would work!
+emptyWrapper :: Wrapper
+emptyWrapper = Wrapper "" (Message 0 [])
 data Wrapper = Wrapper { status :: T.Text
                  , message      :: Message
                  } deriving (Show, Eq, Ord)
@@ -435,3 +476,8 @@ mkAuthors mbAs = T.unwords $ intersperse "," $ mkOneAuthor <$> fromMaybe [] mbAs
 
 mkOneAuthor :: Author -> T.Text
 mkOneAuthor a = fromMaybe "" (given a) <> " " <> family a
+
+-- add a bunch of search results to the existing state
+addFoundPapers :: FLMState -> [Paper] -> FLMState
+addFoundPapers fs [] = fs
+addFoundPapers fs (p:ps) = M.insertWith (flip const) (uid p) p (addFoundPapers fs ps)

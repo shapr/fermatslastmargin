@@ -13,6 +13,7 @@ import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
 import           Lucid                                (renderText)
+import           Network.HTTP.Client
 import           Network.HTTP.Client.TLS              (newTlsManager)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
@@ -64,11 +65,10 @@ main = do
 
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
-                  userState <- liftIO $ readState (userHomeDir </> ".fermatslastmargin/localuser")
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> notespush >> friendspull >> paperstable (M.elems userState))
+                  userState <- liftIO $ readState fullUserDir
+                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState))
 
          post "/setauth" $ do -- this isn't real secure
-                  liftIO $ print "yeah, this really works"
                   username <- param "username"
                   oauth <- param "oauth"
                   -- https://github.com/glguy/config-schema/issues/2
@@ -134,6 +134,27 @@ main = do
          get "/gitpull" $ do
                   liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir mgmt
                   redirect "/" -- should probably report problems someday
+
+         get "/crossref" $ do
+                  (terms :: T.Text)  <- param "searchterms"
+                  -- https://github.com/CrossRef/rest-api-doc#api-overview
+                  -- wget "https://api.crossref.org/works?query=room+at+the+bottom"
+                  request <- parseRequest $ T.unpack ("http://api.crossref.org/works?query=" <> terms)
+                  response <- liftIO $ httpLbs request mgmt
+                  let wrapper = fromMaybe emptyWrapper (decodeSR $ responseBody response)
+                      foundpapers = converter <$> (items . message) wrapper
+                  -- html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Search Results" (foundpaperstable foundpapers)
+
+         post "/newpaper" $ do
+                  newPapers :: [Paper] <- jsonData
+                  liftIO $ print newPapers
+                  userState <- liftIO $ readState fullUserDir
+                  liftIO $ print userState
+                  let newState = addFoundPapers userState newPapers
+                  liftIO $ print newState
+                  liftIO $ writeState fullUserDir newState
+                  redirect "/"
 
          get "/newuser" $ do
                   -- create the repo on github

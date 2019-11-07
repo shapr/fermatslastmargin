@@ -33,20 +33,23 @@ findRepos localusername oauthToken mgmt = do
   print $ "found valid friend repos " <> show result
   pure result
 
+pairNameRepo :: Repo -> (T.Text, T.Text)
 pairNameRepo r = (untagName . simpleOwnerLogin $ repoOwner r, getUrl $ repoUrl r)
 
+flmRepo :: Name Owner -> IO (Either Error Repo)
 flmRepo = flip Repos.repository (mkName ([] :: [Repos.Repo]) "flmdata")
 
 findRepos' :: T.Text -> T.Text -> Manager -> IO [(T.Text,T.Text)]
 findRepos' username token mgmt =
     findRepos (mkName ([] :: [User]) username) (T.unpack token) mgmt
 
-
+createDataRepo :: [Char] -> IO (Either Error Repo)
 createDataRepo oauthToken = do
   let auth = GitHub.OAuth . fromString $ oauthToken
   Repos.createRepo' auth flmdatarepo
 
 -- empty flmdata repo for initial startup
+flmdatarepo :: NewRepo
 flmdatarepo = NewRepo {
                 newRepoName = mkName ([] :: [Repo]) "flmdata"
               , newRepoDescription = Just "Data repo for Fermat's Last Margin"

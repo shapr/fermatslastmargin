@@ -39,8 +39,7 @@ library
     Lib
     Lib.Github
 
-  ghc-options:
-    -fwarn-unused-imports -ferror-spans -fshow-loaded-modules
+  ghc-options:      -ferror-spans -fshow-loaded-modules -Wall
 
 executable fermatslastmargin
   main-is:          Main.hs
@@ -65,5 +64,4 @@ executable fermatslastmargin
     , wai-middleware-static
 
   default-language: Haskell2010
-  ghc-options:
-    -fwarn-unused-imports -threaded -ferror-spans -fshow-loaded-modules
+  ghc-options:      -threaded -ferror-spans -fshow-loaded-modules -Wall
