@@ -94,6 +94,17 @@ main = do
                                        redirect "/"
                                      Nothing -> raise "something's broken"
 
+         post "/updatepdf" $ do
+                  puid <- param "uidtoupdate"
+                  fs <- files
+                  let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
+                  liftIO $ do
+                    let paperDir = fullStaticDir </> TL.unpack puid
+                    createDirectoryIfMissing True paperDir -- gotta have this
+                    BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
+                    renderPageImages paperDir
+                  redirect $ "/index.html?uid=" <> puid
+
          post "/annotate" $ do
                   (jd :: Annotation) <- jsonData
                   userState <- liftIO $ readState fullUserDir

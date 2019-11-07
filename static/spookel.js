@@ -66,8 +66,7 @@ $(document).ready(function(){
     $("#status").val(hereagain());
     $("#pgup").val(pagenum + 1);
     $("#pgdn").val(pagenum - 1 || 1); // gosh that's ugly
-    // $.get("/annotate/" + uid + "/" + pagenum, "", setAnnotation, "json"); // now doing POST to load a note, argh!
-    // $.post("/getannotate", JSON.stringify({ pageNumber: pagenum, content: "", paperuid: uid }), setAnnotation, "json");
+    document.getElementById("uidtoupdate").value = uid;
     var append = "";
     if(friendview) {
 	append = "&viewfriend=" + friendview;
@@ -97,7 +96,7 @@ document.addEventListener('keydown', (e) => {
 	location.href = builddown();
     }
     if (e.key == "PageUp") {
-	if (pagenum >= 1) { location.href = buildup(); // hereagain() + "?pagenum=" + (pagenum - 1) + "&uid=" uid;
+	if (pagenum >= 1) { location.href = buildup();
 			  } else { location.href = hereagain() + "?pagenum=1" + "&uid=" + uid;
 				   // location.href = buildurl();
 				 }

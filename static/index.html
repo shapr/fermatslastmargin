@@ -6,14 +6,25 @@
   </head>
   <body>
     <table id="navigation">
-	<tr> <td><a href="/" class="backtolist">&lt; back to list</a> </td> <td> <table id="friends"></table> </td></tr>
+      <tr>
+	<td> <a href="/" class="backtolist">&lt; back to list</a> </td>
+	<td>
+	  <table id="friends"></table> </td>
+	<td>
+	  <form action="/updatepdf" method="post" enctype="multipart/form-data">
+	    <input type="hidden" id="uidtoupdate" name="uidtoupdate" value="" onchange="form.submit()"/>
+	    <input type="file" name="uploadedfile"/>
+	    <input type="submit" value="Update PDF for this paper."/>
+	  </form>
+	</td>
+      </tr>
     </table>
     <form name="test" id="test" method="post" action="/index.html">
       <div id="container">
-      <input id="oldcontent" />
-      <textarea id="content" ></textarea>
-      <div id="friend"></div>
-      <img id="pageimage" src="/valknut.svg" width="100%"/>
+	<input id="oldcontent" />
+	<textarea id="content" ></textarea>
+	<div id="friend"></div>
+	<img id="pageimage" src="/valknut.svg" width="100%"/>
       </div>
     </form>
   </body>

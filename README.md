@@ -36,7 +36,8 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [X] switch notes view to see github friends' notes
 - [X] setup new user (ask for github OAuth and username, set git remote correctly)
 - [X] search crossref.org by title to get DOI
-- [ ] download paper (as PDF) when given unique ID (DOI for now)
+- [X] update PDF when viewing paper
+- [ ] plugin system to download paper (as PDF) when given unique ID (DOI for now)
 - [ ] search arxiv by title to get DOI
 
 # Dependencies
