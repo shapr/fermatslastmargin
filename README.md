@@ -3,7 +3,7 @@ A tool for annotating research papers (and more) and sharing those annotations (
 
 [Fermat's Last Theorem](https://en.wikipedia.org/wiki/Fermat%27s_Last_Theorem) was captioned "I have a truly marvelous demonstration of this proposition which this margin is too narrow to contain."
 
-This this tool intends to be an infinite margin.
+This tool intends to be an infinite margin.
 
 # WHY WOULD I USE THIS?
 
@@ -55,7 +55,7 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 
 # Project Implementation
 
-(Scotty)[http://hackage.haskell.org/package/scotty] is used to handle a bunch of HTTP endpoints.
+[Scotty](http://hackage.haskell.org/package/scotty) is used to handle a bunch of HTTP endpoints.
 
 All state is saved in `~/.fermatslastmargin/`. For the user viewing the papers, their state will be in `~/.fermatslastmargin/localuser`.
 
