@@ -39,11 +39,15 @@ All of the annotations are saved in a local directory `~/.fermatslastmargin/loca
 - [X] update PDF when viewing paper
 - [ ] plugin system to download paper (as PDF) when given unique ID (DOI for now)
 - [ ] search arxiv by title to get DOI
+- [ ] swap to github v4 graphql API so pulling friend repos doesn't get rate limited
 
 # Dependencies
 - git
 - poppler-utils (apt install poppler-utils)
 - zlib (apt install zlib1g-dev)
+## Dependencies when building from source
+- cabal 2.4 - if you get "cabal: fermatslastmargin.cabal:14: Parse of field 'build-depends' failed." you need to upgrade with "cabal install Cabal"
+- GHC 8.6 (at least, that's all I've tried)
 
 ## Mac
 - brew install poppler

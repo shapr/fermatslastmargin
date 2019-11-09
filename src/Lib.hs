@@ -195,7 +195,7 @@ papersadd nowTime = do
 
 papersearch :: Monad m => HtmlT m ()
 papersearch = do
-  h2_ [class_ "page-title"] "Search for a paper"
+  h2_ [class_ "page-title"] "Search for a paper to add"
   form_ [action_ "/crossref", method_ "get"] $ do
       table_ $ do
                 tr_ $ do
