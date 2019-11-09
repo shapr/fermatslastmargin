@@ -4,7 +4,8 @@ if (pagenum < 1) {
     pagenum = 1;
 }
 
-// var uid = "todo";
+var content = document.getElementById("content"); // I use this everywhere.
+
 var uid = params.get("uid") || "todo";
 var friendview = params.get("friendview") || "";
 function setAnnotation(a) {
@@ -91,15 +92,15 @@ function builddown () {
 document.addEventListener('keydown', (e) => {
     content = document.getElementById("content");
 
-    if (e.key == "PageDown") {
-
+    if (e.key == "PageDown" || (e.key == "ArrowRight" && document.activeElement != content)) {
 	location.href = builddown();
     }
-    if (e.key == "PageUp") {
-	if (pagenum >= 1) { location.href = buildup();
-			  } else { location.href = hereagain() + "?pagenum=1" + "&uid=" + uid;
-				   // location.href = buildurl();
-				 }
+    if (e.key == "PageUp" || (e.key == "ArrowLeft" && document.activeElement != content)) {
+	if (pagenum >= 1) {
+	    location.href = buildup();
+	} else {
+	    location.href = hereagain() + "?pagenum=1" + "&uid=" + uid;
+	}
     }
     if (e.key == "Enter") {
 	// check focus
