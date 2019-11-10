@@ -13,24 +13,35 @@
 
 #container > textarea{
   position:fixed;
-  top:5%; left:10px;
+  top:2em; left:10px;
   opacity:0.2;
   width: 70%;
   height: 60%;
   font-size: 18px;
 }
 
-#container > div#friend{
+#container > div#friend {
   position:absolute;
-  top:30px; left:50%;
+  top:2em; left:50%;
   opacity:0.2;
   width: 50%;
   height: 60%;
 }
 
-#container > textarea:focus{
+#container > textarea:focus {
   /* when you click into text field */
   opacity:0.7;
+}
+
+table#friends a {
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 5px;
+  padding: 1px 0.5em;
+}
+table#friends a:hover {
+  background-color: #e54b04;
+  color: white;
 }
 
 a.backtolist {
@@ -41,6 +52,7 @@ a.backtolist {
   padding: 1px 1em;
   border-radius: 5px;
   border: 1px solid #0400ff;
+  margin-right: 1em;
 }
 a.backtolist:hover {
   background-color: #e54b04;
