@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', e => {
   }
 
   var content = document.getElementById('content') // I use this everywhere.
-  console.log(content)
   var uid = params.get('uid') || 'todo'
   var friendview = params.get('friendview') || ''
   var didJustEscape = false
@@ -149,11 +148,7 @@ document.addEventListener('DOMContentLoaded', e => {
     }
   })
 
-  console.log('hi aaron')
-
   content.addEventListener('blur', e => {
-    console.log('blurred')
-
     // check if escaped key triggered the blur, only submit if it did not.
     if (!didJustEscape) {
       didJustEscape = false
