@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', e => {
   console.log(content)
   var uid = params.get('uid') || 'todo'
   var friendview = params.get('friendview') || ''
-  var didJustEscape = true
+  var didJustEscape = false
   function setAnnotation(a) {
     document.getElementById('content').value = a[0]['content'] || '' // still looks ugly to me
     document.getElementById('friend').innerHTML = a[1]['content'] || '' // save me from nulls!
