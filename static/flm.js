@@ -35,17 +35,17 @@ document.addEventListener('DOMContentLoaded', e => {
 
   function setFriends(data) {
     friends_table = document.getElementById('friends')
-    $.each(data, function() {
+    data.forEach(friend => {
       var tbl_row = friends_table.insertRow()
       var row_cel = tbl_row.insertCell(0)
       var ank = document.createElement('a')
-      ank.title = data
-      if (friendview != data) {
-        ank.href = location.href + '&friendview=' + data
+      ank.title = friend
+      if (friendview != friend) {
+        ank.href = location.href + '&friendview=' + friend
       } else {
         ank.href = removeURLParameter(location.href, 'friendview')
       }
-      ank.appendChild(document.createTextNode(data))
+      ank.appendChild(document.createTextNode(friend))
       row_cel.appendChild(ank)
     })
   }
