@@ -50,3 +50,9 @@ a.backtolist:active {
   top: -2px;
   left: -1px;
 }
+#updatepdf {
+  float: right;
+}
+#updatepdf label {
+  margin-right: 1em;
+}
