@@ -1,36 +1,39 @@
-#container{
-    position:relative;
+#container {
+  position: relative;
 }
-#container > input{
-  position:absolute;
-  top:10px;left:10px;
-  opacity:0.2;
+#container > input {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  opacity: 0.2;
 }
-#container > input:focus{
+#container > input:focus {
   /* when you click into text field */
-  opacity:0.7;
+  opacity: 0.7;
 }
 
-#container > textarea{
-  position:fixed;
-  top:3em; left:10px;
-  opacity:0.2;
+#container > textarea {
+  position: fixed;
+  top: 3em;
+  left: 10px;
+  opacity: 0.2;
   width: 70%;
   height: 60%;
   font-size: 18px;
 }
 
 #container > div#friend {
-  position:absolute;
-  top:3em; left:50%;
-  opacity:0.2;
+  position: absolute;
+  top: 3em;
+  left: 50%;
+  opacity: 0.2;
   width: 50%;
   height: 60%;
 }
 
 #container > textarea:focus {
   /* when you click into text field */
-  opacity:0.7;
+  opacity: 0.7;
 }
 
 table#friends a {
