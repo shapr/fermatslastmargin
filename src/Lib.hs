@@ -197,10 +197,11 @@ papersearch :: Monad m => HtmlT m ()
 papersearch = do
   h2_ [class_ "page-title"] "Search for a paper to add"
   form_ [action_ "/crossref", method_ "get"] $ do
-      table_ $ do
+      table_ [class_ "crossref-form"]$ do
                 tr_ $ do
                   td_ $ label_ "Title words"
                   td_ $ input_ [type_ "text", name_ "searchterms"]
+                  td_ $ input_ [type_ "submit", value_ "Search"]
 
 authform :: Monad m => HtmlT m ()
 authform = do

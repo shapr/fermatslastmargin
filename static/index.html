@@ -5,28 +5,27 @@
     <link rel="stylesheet" type="text/css" href="page.css" media="screen" />
   </head>
   <body>
+    <div id="updatepdf">
+      <form action="/updatepdf" method="post" enctype="multipart/form-data">
+        <label>Update PDF for this paper: </label>
+        <input type="hidden" id="uidtoupdate" name="uidtoupdate" value="" onchange="form.submit()"/>
+        <input type="file" name="uploadedfile"/>
+        <input type="submit" value="Update"/>
+      </form>
+    </div>
     <table id="navigation">
       <tr>
-	<td> <a href="/" class="backtolist">&lt; back to list</a> </td>
-	<td>
-	  <table id="friends"></table>
-	</td>
-	<td>Press Enter to edit per-page notes, Enter again to save. PgUp and PgDn to change pages.</td>
-	<td style="float: right">
-	  <form action="/updatepdf" method="post" enctype="multipart/form-data">
-	    <input type="hidden" id="uidtoupdate" name="uidtoupdate" value="" onchange="form.submit()"/>
-	    <input type="file" name="uploadedfile"/>
-	    <input type="submit" value="Update PDF for this paper."/>
-	  </form>
-	</td>
+      	<td> <a href="/" class="backtolist">&lt; back to list</a> </td>
+      	<td><i>Press Enter to edit per-page notes, Enter again to save. PgUp and PgDn to change pages.</i></td>
       </tr>
     </table>
+    <table id="friends"></table>
     <form name="test" id="test" method="post" action="/index.html">
       <div id="container">
-	<input id="oldcontent" />
-	<textarea id="content" ></textarea>
-	<div id="friend"></div>
-	<img id="pageimage" src="/valknut.svg" width="100%"/>
+      	<input id="oldcontent" />
+      	<textarea id="content" ></textarea>
+      	<div id="friend"></div>
+      	<img id="pageimage" src="/valknut.svg" width="100%"/>
       </div>
     </form>
   </body>
