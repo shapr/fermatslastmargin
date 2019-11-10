@@ -13,7 +13,7 @@
 
 #container > textarea{
   position:fixed;
-  top:2em; left:10px;
+  top:3em; left:10px;
   opacity:0.2;
   width: 70%;
   height: 60%;
@@ -22,7 +22,7 @@
 
 #container > div#friend {
   position:absolute;
-  top:2em; left:50%;
+  top:3em; left:50%;
   opacity:0.2;
   width: 50%;
   height: 60%;
