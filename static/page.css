@@ -14,7 +14,7 @@
 
 #container > textarea {
   position: fixed;
-  top: 3em;
+  top: 3.2em;
   left: 10px;
   opacity: 0.2;
   width: 70%;
@@ -34,6 +34,28 @@
 #container > textarea:focus {
   /* when you click into text field */
   opacity: 0.7;
+}
+
+#instructions {
+  visibility: hidden;
+  border: 2px solid #e54b04;
+  border-radius: 5px;
+  padding: 6px;
+  background-color: white;
+  position: absolute;
+  z-index: 100;
+  margin-top: 5px;
+  box-shadow: 2px 3px 5px #777;
+}
+#instructions p {
+  margin: 0;
+  margin-bottom: 0.2em;
+}
+.hoverhelp {
+  cursor: help;
+}
+.hoverhelp:hover > #instructions {
+  visibility: visible;
 }
 
 table#friends a {
