@@ -5,7 +5,7 @@ h1 {
     text-shadow: 1px 1px #bfbfbf;
 }
 h2 {
-    margin: 0.3em 0 0;
+    margin: 0;
     padding: 0.1em 1em 0.3em;
     background-color: #e54b04;
     color: white;
@@ -20,7 +20,7 @@ th, td {
     padding-left: 1em;
 }
 table.paperlist {
-    margin:  2em auto 1em;
+    margin:  1em auto;
 }
 .paperlist thead {
     background-color: #e54b04;
@@ -50,6 +50,12 @@ form input[type=submit] {
     float: right;
     margin: 0.5em 0 1.2em;
 }
+.crossref-form {
+    margin-bottom: 1.5em;
+}
+.crossref-form input[type="submit"] {
+    margin: 0;
+}
 
 /* Buttons */
 .git {
@@ -74,5 +80,5 @@ a.git:active {
     margin-left: 3em;
 }
 .gitpull {
-    margin-bottom: 2em;
+    margin-bottom: 1em;
 }
