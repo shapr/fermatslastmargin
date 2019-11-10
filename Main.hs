@@ -66,7 +66,7 @@ main = do
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
                   userState <- liftIO $ readState fullUserDir
-                  html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState))
+                  html . renderText $ pageTemplate "Papers" (flmheader >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState) >> papersadd (utctDay nowTime))
 
          post "/setauth" $ do -- this isn't real secure
                   username <- param "username"
@@ -154,7 +154,6 @@ main = do
                   response <- liftIO $ httpLbs request mgmt
                   let wrapper = fromMaybe emptyWrapper (decodeSR $ responseBody response)
                       foundpapers = converter <$> (items . message) wrapper
-                  -- html . renderText $ pageTemplate "Papers" (papersadd (utctDay nowTime) >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState))
                   html . renderText $ pageTemplate "Search Results" (foundpaperstable foundpapers)
 
          post "/newpaper" $ do

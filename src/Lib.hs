@@ -154,6 +154,8 @@ filterFile :: [FilePath] -> IO [FilePath]
 filterFile = filterM doesFileExist
 
 -- html page stuff
+flmheader :: Monad m => HtmlT m ()
+flmheader = h1_ [class_ "site-title"] "Fermat's Last Margin"
 
 pageTemplate :: Monad m => Text -> HtmlT m a -> HtmlT m a
 pageTemplate title content = do
@@ -169,8 +171,7 @@ pageTemplate title content = do
 
 papersadd :: Monad m => Day -> HtmlT m ()
 papersadd nowTime = do
-  h1_ [class_ "site-title"] "Fermat's Last Margin"
-  h2_ [class_ "page-title"] "Add a paper"
+  h2_ [class_ "page-title"] "Manually add paper metadata"
   form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $
       do
         table_ $ do
@@ -195,7 +196,7 @@ papersadd nowTime = do
 
 papersearch :: Monad m => HtmlT m ()
 papersearch = do
-  h2_ [class_ "page-title"] "Search for a paper to add"
+  h2_ [class_ "page-title"] "Search for paper metadata to add"
   form_ [action_ "/crossref", method_ "get"] $ do
       table_ [class_ "crossref-form"]$ do
                 tr_ $ do
