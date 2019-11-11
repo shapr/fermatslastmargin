@@ -23,32 +23,33 @@ document.addEventListener('DOMContentLoaded', e => {
       var pars = urlparts[1].split(/[&;]/g);
       //reverse iteration as may be destructive
       for (var i = pars.length; i-- > 0; ) {
-        //idiom for string.startsWith
-        if (pars[i].lastIndexOf(prefix, 0) !== -1) {
-          pars.splice(i, 1);
-        }
+	//idiom for string.startsWith
+	if (pars[i].lastIndexOf(prefix, 0) !== -1) {
+	  pars.splice(i, 1);
+	}
       }
       return urlparts[0] + (pars.length > 0 ? '?' + pars.join('&') : '');
     }
     return url;
   }
 
-  function setFriends(data) {
-    friends_table = document.getElementById('friends');
-    data.forEach(friend => {
-      var tbl_row = friends_table.insertRow();
-      var row_cel = tbl_row.insertCell(0);
-      var ank = document.createElement('a');
-      ank.title = friend;
-      if (friendview != friend) {
-        ank.href = location.href + '&friendview=' + friend;
-      } else {
-        ank.href = removeURLParameter(location.href, 'friendview');
-      }
-      ank.appendChild(document.createTextNode(friend));
-      row_cel.appendChild(ank);
-    });
-  }
+    function setFriends(data) {
+	friends_table = document.getElementById('friends');
+	var tbl_row = friends_table.insertRow();
+
+	data.forEach(friend => {
+	    var row_cel = tbl_row.insertCell(0);
+	    var ank = document.createElement('a');
+	    ank.title = friend;
+	    if (friendview != friend) {
+		ank.href = location.href + '&friendview=' + friend;
+	    } else {
+		ank.href = removeURLParameter(location.href, 'friendview');
+	    }
+	    ank.appendChild(document.createTextNode(friend));
+	    row_cel.appendChild(ank);
+	});
+    }
 
   function setPageImage(pagenum) {
     let imgsrc = '/' + uid + '/page-' + pagenum + '.png';
@@ -111,35 +112,35 @@ document.addEventListener('DOMContentLoaded', e => {
       (e.key == 'ArrowLeft' && document.activeElement != content)
     ) {
       if (pagenum >= 1) {
-        location.href = buildup();
+	location.href = buildup();
       } else {
-        location.href = hereagain() + '?pagenum=1' + '&uid=' + uid;
+	location.href = hereagain() + '?pagenum=1' + '&uid=' + uid;
       }
     }
     if (e.key == 'Enter' && e.ctrlKey) {
       // check focus
       if (content == document.activeElement) {
-        // content already has focus, CTRL+enter should submit to the server if the contents are non-empty
-        // submit, check for write, if success then redirect to this page
-        if (content.value.length > 0) {
-          // check for empty textarea, this might work?
-          // submit to server
-          $.post(
-            '/annotate',
-            JSON.stringify({
-              pageNumber: pagenum,
-              content: content.value,
-              paperuid: uid
-            })
-          );
-          content.blur();
-          // display saved, and drop focus
-        } else {
-          alert('not saving empty annotation');
-        }
+	// content already has focus, CTRL+enter should submit to the server if the contents are non-empty
+	// submit, check for write, if success then redirect to this page
+	if (content.value.length > 0) {
+	  // check for empty textarea, this might work?
+	  // submit to server
+	  $.post(
+	    '/annotate',
+	    JSON.stringify({
+	      pageNumber: pagenum,
+	      content: content.value,
+	      paperuid: uid
+	    })
+	  );
+	  content.blur();
+	  // display saved, and drop focus
+	} else {
+	  alert('not saving empty annotation');
+	}
       } else {
-        content.focus(); // put focus on content
-        content.style.height = content.scrollHeight + 'px';
+	content.focus(); // put focus on content
+	content.style.height = content.scrollHeight + 'px';
       }
     }
     if (e.key == 'Escape') {
@@ -154,18 +155,18 @@ document.addEventListener('DOMContentLoaded', e => {
       didJustEscape = false;
       // submit, check for write, if success then redirect to this page
       if (content.value.length > 0) {
-        // check for empty textarea, this might work?
-        // submit to server
-        $.post(
-          '/annotate',
-          JSON.stringify({
-            pageNumber: pagenum,
-            content: content.value,
-            paperuid: uid
-          })
-        );
+	// check for empty textarea, this might work?
+	// submit to server
+	$.post(
+	  '/annotate',
+	  JSON.stringify({
+	    pageNumber: pagenum,
+	    content: content.value,
+	    paperuid: uid
+	  })
+	);
       } else {
-        alert('not saving empty annotation');
+	alert('not saving empty annotation');
       }
     }
   });

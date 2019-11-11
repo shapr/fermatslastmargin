@@ -178,3 +178,30 @@ main = do
                             _ <- liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
                             redirect "/"
                                 where oauthedremote = swizzle (username gc) (oauth gc)
+
+         get "/editmetadata" $ do
+                  (puid :: T.Text) <- param "uidtoupdate"
+                  userState <- liftIO $ readState fullUserDir
+                  let mbPaper = M.lookup puid userState
+                  case mbPaper of
+                    Nothing -> html "That Paper does not exist"
+                    Just p  -> html . renderText $ pageTemplate "Edit metadata" (paperedit p)
+
+         post "/editmetadata" $ do
+                  (updatedpaper :: Paper) <- jsonData
+                  liftIO $ print ("it did not shit itself" <> show updatedpaper)
+                  userState <- liftIO $ readState fullUserDir
+                  let mbPaper = M.lookup (uid updatedpaper) userState
+                  case mbPaper of
+                    Nothing -> do
+                      liftIO $ print "could not find the paper"
+                      html "That Paper does not exist"
+                    Just p  -> do
+                      liftIO $ writePaper fullUserDir $ p {
+                                   uid = uid updatedpaper
+                                 , author = author updatedpaper
+                                 , published = published updatedpaper
+                                 , notes = (notes p) -- don't modify the notes, copy from the previous Paper value
+                                 }
+                      liftIO $ print "paper written successfully"
+                      redirect "/"

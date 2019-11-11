@@ -196,6 +196,28 @@ papersadd nowTime = do
             td_ $ span_ ""
             td_ $ input_ [type_ "submit"]
 
+paperedit :: Monad m => Paper -> HtmlT m ()
+paperedit editpaper = do
+  h2_ [class_ "page-title"] "Edit paper metadata"
+  form_ [action_ "/paper", method_ "post", enctype_ "multipart/form-data"] $
+      do
+        table_ $ do
+          tr_ $ do
+            td_ $ label_ "DOI"
+            td_ $ label_ [id_ "doi"] (toHtml $ uid editpaper)
+          tr_ $ do
+            td_ $ label_ "Title"
+            td_ $ input_ [id_ "title", type_ "text", name_ "title", value_ (title editpaper)]
+          tr_ $ do
+            td_ $ label_ "Authors"
+            td_ $ input_ [id_ "author", type_ "text", name_ "author", value_ (author editpaper)]
+          tr_ $ do
+            td_ $ label_ "Publication Date"
+            td_ $ input_ [id_ "published", type_ "date", name_ "pubdate", value_ (pack . show $ published editpaper)]
+          tr_ $ do
+            td_ $ span_ ""
+            td_ $ button_ [type_ "button", id_ "editmetadata"] "Apply changes"
+
 papersearch :: Monad m => HtmlT m ()
 papersearch = do
   h2_ [class_ "page-title"] "Search for paper metadata to add"
@@ -234,6 +256,7 @@ paperstable rows =
     thead_ $
       tr_ $ do
         th_ "Paper Title"
+        th_ "Edit"
         th_ "Pub Date"
         th_ "DOI"
         th_ "Authors"
@@ -241,7 +264,8 @@ paperstable rows =
 
 viewPaper :: Monad m => Paper -> HtmlT m ()
 viewPaper r = tr_ $
-  do td_ $ a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> uid r)] (toHtml $ title r)
+  do td_ $ a_ [href_ ("/index.html" <> "?pagenum=1" <> "&uid=" <> uid r)] (toHtml $ title r) -- link to page view for paper
+     td_ $ a_ [href_ ("/editmetadata?uidtoupdate=" <> uid r)] "Edit"
      tdit (T.pack . show . published :: Paper -> Text)
      tdit uid
      tdit author
@@ -323,9 +347,9 @@ changeWholePath fp =  uncurry combine . fixName $ splitFileName fp
     where fixName (x,y) = (x,fixZ y)
 
 -- ugly, but works, kinda?
-fixZ :: [Char] -> [Char]
-fixZ n@('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
-fixZ n                          = n
+fixZ :: String -> String
+fixZ ('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
+fixZ n                        = n
 
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
