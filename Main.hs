@@ -69,10 +69,10 @@ main = do
                   html . renderText $ pageTemplate "Papers" (flmheader >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState) >> papersadd (utctDay nowTime))
 
          post "/setauth" $ do -- this isn't real secure
-                  username <- param "username"
+                  uname <- param "username" -- don't shadow username, it's a record accessor for GithubConfig
                   oauth <- param "oauth"
                   -- https://github.com/glguy/config-schema/issues/2
-                  liftIO $ writeFile configFile ("username: \"" <> username <> "\"\noauth: \"" <> oauth <> "\"")
+                  liftIO $ writeFile configFile ("username: \"" <> uname <> "\"\noauth: \"" <> oauth <> "\"")
                   gc <- liftIO $ loadValueFromFile githubSpec configFile
                   html "Your credentials have been saved"
                   redirect "/newuser"
@@ -86,11 +86,11 @@ main = do
                                        let cleanPaper = sanitizePaper thePaper
                                        liftIO $ do
                                          writeState fullUserDir $ M.insert (uid cleanPaper) cleanPaper userState
-                                         commitEverything fullUserDir -- just wrote paper.json, now stuff it into git
+                                         _ <- commitEverything fullUserDir -- just wrote paper.json, now stuff it into git, don't even check it!
                                          let paperDir = fullStaticDir </> T.unpack (uid cleanPaper)
                                          createDirectoryIfMissing True paperDir -- gotta have this
                                          BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
-                                         renderPageImages paperDir
+                                         _ <- renderPageImages paperDir -- should really check/report failure here
                                          print "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
@@ -99,7 +99,7 @@ main = do
                   puid <- param "uidtoupdate"
                   fs <- files
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
-                  liftIO $ do
+                  _ <- liftIO $ do
                     let paperDir = fullStaticDir </> TL.unpack puid
                     BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                     renderPageImages paperDir
@@ -113,29 +113,29 @@ main = do
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = upsertAnnotation jd (notes p)}
-                  liftIO $ commitEverything fullUserDir
+                  _ <- liftIO $ commitEverything fullUserDir
                   json final
 
          get "/getannotate" $ do -- this should really be a GET, not a POST
                   pagenum <- param "pagenum"
-                  uid <- param "paperuid"
+                  puid <- param "paperuid"
                   ps <- params
                   userState <- liftIO $ readState fullUserDir
                   -- point free code below replaces a big pile of pattern matches on Maybe!
                   let mbFriendnote = maybeGetAnnotation pagenum . notes -- that friend's paper have any notes for this page?
-                                     <=< M.lookup uid -- does that friend have this paper?
+                                     <=< M.lookup puid -- does that friend have this paper?
                                      <=< flip M.lookup friendState . TL.toStrict -- does that friend exist?
                                      <=< lookup "viewfriend" $ ps -- is the user trying to view notes from a friend?
-                      friendnote = fromMaybe (Annotation "" pagenum uid) mbFriendnote
-                  let mbPaper = M.lookup uid userState
+                      friendnote = fromMaybe (Annotation "" pagenum puid) mbFriendnote
+                  let mbPaper = M.lookup puid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"
-                            Just p  -> pure $ fromMaybe (Annotation "Press Enter to edit this note" pagenum uid) (maybeGetAnnotation pagenum (notes p)) -- ugh!
+                            Just p  -> pure $ fromMaybe (Annotation "Press Enter to edit this note" pagenum puid) (maybeGetAnnotation pagenum (notes p)) -- ugh!
                   json [final,friendnote] -- return an array of localuser note, and selected friend note. There must be a better way, argh
 
          get "/friends" $ do
-                  paperuid <- param "paperuid"
-                  json $ M.findWithDefault [] paperuid friendPapers
+                  puid <- param "paperuid"
+                  json $ M.findWithDefault [] puid friendPapers
 
          get "/gitpush" $ do
                   (exitCode, result) <- liftIO $ pushEverything fullUserDir
@@ -150,8 +150,8 @@ main = do
                   (terms :: T.Text)  <- param "searchterms"
                   -- https://github.com/CrossRef/rest-api-doc#api-overview
                   -- wget "https://api.crossref.org/works?query=room+at+the+bottom"
-                  request <- parseRequest $ T.unpack ("http://api.crossref.org/works?query=" <> terms)
-                  response <- liftIO $ httpLbs request mgmt
+                  req <- parseRequest $ T.unpack ("http://api.crossref.org/works?query=" <> terms)
+                  response <- liftIO $ httpLbs req mgmt
                   let wrapper = fromMaybe emptyWrapper (decodeSR $ responseBody response)
                       foundpapers = converter <$> (items . message) wrapper
                   html . renderText $ pageTemplate "Search Results" (foundpaperstable foundpapers)

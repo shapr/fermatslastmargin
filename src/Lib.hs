@@ -347,12 +347,13 @@ githubSpec = sectionsSpec "github" $
 -- pitch everything into git!
 commitEverything :: FilePath -> IO (ExitCode, Text)
 commitEverything fp = do
-  (Nothing, Nothing, Just errh, pid) <- createProcess (proc "git" ["add", "-A"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
-  exitCode <- waitForProcess pid
-  (Nothing, Nothing, Just errhc, pidc) <- createProcess (proc "git" ["commit", "-m", "added understanding"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  (Nothing, Nothing, Just erra, pid) <- createProcess (proc "git" ["add", "-A"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
+  resultAdd <- decodeUtf8 <$> BS.hGetContents erra
+  _ <- waitForProcess pid
+  (Nothing, Nothing, Just errc, pidc) <- createProcess (proc "git" ["commit", "-m", "added understanding"]) { cwd = Just fp, std_in = NoStream, std_out = NoStream, std_err = CreatePipe, close_fds = True}
   exitCode <- waitForProcess pidc
-  result <- decodeUtf8 <$> BS.hGetContents errhc
-  return (exitCode, result)
+  resultCommit <- decodeUtf8 <$> BS.hGetContents errc
+  return (exitCode, resultAdd <> resultCommit)
 
 -- push to remote
 pushEverything :: FilePath -> IO (ExitCode, Text)
@@ -487,4 +488,5 @@ addFoundPapers fs [] = fs
 addFoundPapers fs (p:ps) = M.insertWith (flip const) (uid p) p (addFoundPapers fs ps)
 
 -- sanity
+sanitizePaper :: Paper -> Paper
 sanitizePaper p = p {uid = T.toLower (uid p)}
