@@ -17,6 +17,7 @@ import           Data.Aeson            (FromJSON (..), ToJSON, Value (..),
 import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as BSL
+import           Data.Char             (toLower)
 import           Data.List             (intersperse)
 import qualified Data.Map.Strict       as M
 import           Data.Maybe            (catMaybes, fromMaybe, isJust,
@@ -95,8 +96,9 @@ readState fp = do
 -- | filepath should be the FULL path to the user dir, so either localuser or a friendname
 writeState :: FilePath -> FLMState -> IO ()
 writeState fp flms = do
+  let sanefp = toLower <$> fp
   -- M.Map Text Paper , dirname / doi -> Paper
-  _ <- createDirectoryIfMissing True fp -- create friend/user dir if needed
+  _ <- createDirectoryIfMissing True sanefp -- create friend/user dir if needed
   print $ "fp is " <> fp <> " and FLMState is " <> show flms
   mapM_ (writePaper fp) (M.elems flms)
 
@@ -483,3 +485,6 @@ mkOneAuthor a = fromMaybe "" (given a) <> " " <> family a
 addFoundPapers :: FLMState -> [Paper] -> FLMState
 addFoundPapers fs [] = fs
 addFoundPapers fs (p:ps) = M.insertWith (flip const) (uid p) p (addFoundPapers fs ps)
+
+-- sanity
+sanitizePaper p = p {uid = T.toLower (uid p)}

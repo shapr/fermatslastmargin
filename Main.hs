@@ -83,10 +83,11 @@ main = do
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   let maybePaper = mbP ps
                   case maybePaper of Just thePaper -> do
+                                       let cleanPaper = sanitizePaper thePaper
                                        liftIO $ do
-                                         writeState fullUserDir $ M.insert (uid thePaper) thePaper userState
+                                         writeState fullUserDir $ M.insert (uid cleanPaper) cleanPaper userState
                                          commitEverything fullUserDir -- just wrote paper.json, now stuff it into git
-                                         let paperDir = fullStaticDir </> T.unpack (uid thePaper)
+                                         let paperDir = fullStaticDir </> T.unpack (uid cleanPaper)
                                          createDirectoryIfMissing True paperDir -- gotta have this
                                          BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                                          renderPageImages paperDir
@@ -100,7 +101,6 @@ main = do
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   liftIO $ do
                     let paperDir = fullStaticDir </> TL.unpack puid
-                    createDirectoryIfMissing True paperDir -- gotta have this
                     BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                     renderPageImages paperDir
                   redirect $ "/index.html?uid=" <> puid
@@ -144,7 +144,7 @@ main = do
                     _           -> html "Failed to push to github"
          get "/gitpull" $ do
                   liftIO $ getFriendRepos (username gc) (oauth gc) fullFriendsDir mgmt
-                  redirect "/" -- should probably report problems someday
+                  redirect "/" -- should really report problems someday
 
          get "/crossref" $ do
                   (terms :: T.Text)  <- param "searchterms"
@@ -158,10 +158,11 @@ main = do
 
          post "/newpaper" $ do
                   newPapers :: [Paper] <- jsonData
-                  liftIO $ print newPapers
+                  let cleanPapers = sanitizePaper <$> newPapers
+                  liftIO $ print cleanPapers
                   userState <- liftIO $ readState fullUserDir
                   liftIO $ print userState
-                  let newState = addFoundPapers userState newPapers
+                  let newState = addFoundPapers userState cleanPapers
                   liftIO $ print newState
                   liftIO $ writeState fullUserDir newState
                   redirect "/"
@@ -174,6 +175,6 @@ main = do
                   case createRes of
                     Left e -> html $ "There's a problem: " <> (TL.pack $ show e)
                     Right r -> do
-                            liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
+                            _ <- liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
                             redirect "/"
                                 where oauthedremote = swizzle (username gc) (oauth gc)

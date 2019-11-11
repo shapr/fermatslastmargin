@@ -1,1 +1,3 @@
-- @evelynmitchell - thanks for early testing!
+- Thanks for alpha testing!
+  - @evelynmitchell
+  - @m-clare
