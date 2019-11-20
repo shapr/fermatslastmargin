@@ -20,8 +20,7 @@ import qualified Data.ByteString.Lazy  as BSL
 import           Data.Char             (toLower)
 import           Data.List             (intersperse)
 import qualified Data.Map.Strict       as M
-import           Data.Maybe            (catMaybes, fromMaybe, isJust,
-                                        listToMaybe)
+import           Data.Maybe            (catMaybes, fromMaybe, isJust)
 import           Data.Text             (Text, pack)
 import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf8)
@@ -87,9 +86,9 @@ replaceAnnotation i content (a@(Annotation _ p u):anns) = if p == i then Annotat
 readState :: FilePath -> IO FLMState
 readState fp = do
   allfiles <- listDirectory fp
-  uids <- filterDirectory $ fmap (fp </>) allfiles -- put dirname in front
-  ps <- sequence $ readPaper <$> uids
-  let ps' = catMaybes ps -- drop the Paper values that failed to decode
+  toplevel <- filterDirectory $ fmap (fp </>) allfiles -- put dirname in front
+  ps <- sequence $ readPaper <$> toplevel
+  let ps' = concat ps -- drop the Paper values that failed to decode
       -- TODO should I be using dir names? if I use uid from Paper elsewhere, use that instead! TODO
   return $ M.fromList $ zip (uid <$> ps') ps' -- set the unique ID as the key, the Paper as the value
 
@@ -102,19 +101,21 @@ writeState fp flms = do
   print $ "fp is " <> fp <> " and FLMState is " <> show flms
   mapM_ (writePaper fp) (M.elems flms)
 
--- | given a directory for a paper, read that json file into a Paper value
-readPaper :: FilePath -> IO (Maybe Paper)
+-- | given a directory for an organization, read any paper.json files into Paper values
+readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
-  f <- listToMaybe <$> findPaper fp "paper.json"
-  case f of
-    Nothing -> pure Nothing
-    Just p  -> decodeStrict <$> BS.readFile p
-
+  fns <- findPaper fp "paper.json"
+  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns
+  pure $ catMaybes mbPs
+  -- mapM (decodeStrict . BS.readFile) fns
+  -- pure $ concat $ decodeStrict <$> fs
+  -- case f of
+  --   Nothing -> pure Nothing
+  --   Just p  -> decodeStrict <$> BS.readFile p
 
 -- | assume the dir given is the *USER* directory where all papers have their own directory
 -- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
 -- | or perhaps "~/.fermatslastmargin/friends/pigworker" "10.4204/EPTCS.275.6"
--- | forward slash is not allowed in any filenames, so we substitute underscore _
 writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
   let fullDir = fp </> T.unpack (uid p)
@@ -137,6 +138,7 @@ type FriendView = M.Map Text [Text]
 friendView :: FriendState -> FriendView
 friendView fs = M.fromListWith (<>) (rewire (boph <$> M.toList fs))
 
+boph :: (a1, M.Map k a2) -> (a1, [k])
 boph (friendname,flmstate) = (friendname, M.keys flmstate)
 
 rewire :: [(a,[b])] -> [(b,[a])]
@@ -351,6 +353,7 @@ fixZ :: String -> String
 fixZ ('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
 fixZ n                        = n
 
+killZeroes :: [Char] -> [Char]
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
 
@@ -407,10 +410,13 @@ pullRepo fp = do
   return (exitCode, result)
 
 -- dammit github, why is your API broke? oh I think I'm using the wrong field should be repoHtmlUrl? XXX fix this later!
+unstupid :: Text -> Text
 unstupid = T.replace "/repos" "" . T.replace "api." ""
 
+swizzle :: Text -> Text -> Text -> Text
 swizzle username oauth = T.replace "https://" ("https://" <> username <> ":" <> oauth <> "@")
 
+-- any comment that says "this should be doing X" means "write a new function that does X"
 -- | returns IO [(username, https url to flmdata)]
 getFriendRepos :: Text -> Text -> String -> Manager -> IO ()
 getFriendRepos username token friendsdir mgmt = do
@@ -499,6 +505,7 @@ mkPubDate ::Maybe PubDate -> Day
 mkPubDate mbpd = minimum $ buildparts <$> maybe [[1000,01,01]] (\(PubDate x) -> x) mbpd
     where buildparts ps = greg $ take 3 (ps <> repeat 0)
           greg [y,m,d] = fromGregorian (toInteger y) m d
+          greg a       = error ("fromGregorian got bad input" <> show a)
 
 mkAuthors :: Maybe [Author] -> T.Text
 mkAuthors mbAs = T.unwords $ intersperse "," $ mkOneAuthor <$> fromMaybe [] mbAs
