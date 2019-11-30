@@ -22,7 +22,7 @@ library
     , extra
     , filemanip
     , filepath
-    , github                 ^>=0.22
+    , github                 ^>=0.21
     , http-client
     , http-client-tls
     , http-types
