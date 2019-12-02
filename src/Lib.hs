@@ -105,13 +105,8 @@ writeState fp flms = do
 readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
   fns <- findPaper fp "paper.json"
-  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns
+  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
   pure $ catMaybes mbPs
-  -- mapM (decodeStrict . BS.readFile) fns
-  -- pure $ concat $ decodeStrict <$> fs
-  -- case f of
-  --   Nothing -> pure Nothing
-  --   Just p  -> decodeStrict <$> BS.readFile p
 
 -- | assume the dir given is the *USER* directory where all papers have their own directory
 -- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
@@ -363,7 +358,7 @@ data GithubConfig = GC {
     , oauth    :: Text
     } deriving (Show, Eq, Ord)
 
-githubSpec :: ValueSpecs GithubConfig
+githubSpec :: ValueSpec GithubConfig
 githubSpec = sectionsSpec "github" $
          do username <- reqSection "username" "GitHub username"
             oauth <- reqSection "oauth" "OAuth Token for GitHub"
