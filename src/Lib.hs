@@ -413,7 +413,7 @@ swizzle username oauth = T.replace "https://" ("https://" <> username <> ":" <> 
 
 -- any comment that says "this should be doing X" means "write a new function that does X"
 -- | returns IO [(username, https url to flmdata)]
-getFriendRepos :: Text -> Text -> String -> Manager -> IO ()
+getFriendRepos :: Text -> Text -> FilePath -> Manager -> IO ()
 getFriendRepos username token friendsdir mgmt = do
   nameurlpairs <- findRepos' username token mgmt
   let friendDirs = (\(x,y) -> (friendsdir </> T.unpack x, unstupid y)) <$> nameurlpairs

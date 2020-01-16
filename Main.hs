@@ -4,11 +4,12 @@ module Main where
 
 import           Config.Schema.Load
 import           Control.Monad                        (unless, (<=<))
+import           Control.Monad.Extra                  (ifM)
 import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
 import qualified Data.ByteString.Lazy                 as BSL
 import qualified Data.Map.Strict                      as M
-import           Data.Maybe                           (fromMaybe)
+import           Data.Maybe                           (fromMaybe, isJust)
 import qualified Data.Text                            as T
 import qualified Data.Text.Lazy                       as TL
 import           Data.Time
@@ -20,6 +21,7 @@ import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse
 import           System.Directory                     (createDirectoryIfMissing,
                                                        doesFileExist,
+                                                       findExecutable,
                                                        getHomeDirectory)
 import           System.Exit                          (ExitCode (..))
 import           System.FilePath                      ((</>))
@@ -37,6 +39,8 @@ main = do
 
   -- create config dirs if missing
   mapM_ (createDirectoryIfMissing True) [fullUserDir, fullStaticDir, fullFriendsDir]
+  -- check for pdftocairo in $PATH, or crap out and die
+  ifM (isJust <$> findExecutable "pdftocairo") (pure ()) (error "cannot find pdftocairo in $PATH")
   -- create HTTP manager cause we gonna need it?
   mgmt <- newTlsManager
   -- load all papers and notes
@@ -101,6 +105,7 @@ main = do
                   let fs' = [ (fieldName, BS.unpack (fileName fi), fileContent fi) | (fieldName,fi) <- fs ]
                   _ <- liftIO $ do
                     let paperDir = fullStaticDir </> TL.unpack puid
+                    createDirectoryIfMissing True paperDir -- gotta have this
                     BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                     renderPageImages paperDir
                   redirect $ "/index.html?uid=" <> puid
@@ -158,13 +163,14 @@ main = do
 
          post "/newpaper" $ do
                   newPapers :: [Paper] <- jsonData
-                  let cleanPapers = sanitizePaper <$> newPapers
-                  liftIO $ print cleanPapers
-                  userState <- liftIO $ readState fullUserDir
-                  liftIO $ print userState
-                  let newState = addFoundPapers userState cleanPapers
-                  liftIO $ print newState
-                  liftIO $ writeState fullUserDir newState
+                  liftIO $ do
+                    let cleanPapers = sanitizePaper <$> newPapers
+                    print cleanPapers
+                    userState <- readState fullUserDir
+                    print userState
+                    let newState = addFoundPapers userState cleanPapers
+                    print newState
+                    writeState fullUserDir newState
                   redirect "/"
 
          get "/newuser" $ do

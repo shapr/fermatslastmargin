@@ -50,6 +50,7 @@ executable fermatslastmargin
     , config-schema
     , containers
     , directory
+    , extra
     , fermatslastmargin
     , filepath
     , http-client
