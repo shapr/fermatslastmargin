@@ -25,7 +25,10 @@ Distributing PDFs will get you sued for lots of money ( https://en.wikipedia.org
 * point your web browser to `localhost:3000`
 
 All of the annotations are saved in a local directory `~/.fermatslastmargin/localuser` and your friend's annotations are saved in `~/.fermatslastmargin/friends/<github_name_of_friend>`
-
+### nix shell
+    `nix-shell shell.nix --command "git apply ./nix/gitub.patch && cabal run"`
+    When you done for nix-shell, don't forget to revert patch(this patch just
+    ensure you can run ``nix-shell` correctly). 
 # Features
 - [X] add paper info
 - [X] read/write annotations

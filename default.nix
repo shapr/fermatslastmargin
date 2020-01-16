@@ -7,6 +7,7 @@ rec {
   fermatslastmargin = hsPkgs.fermatslastmargin.overrideAttrs (old: rec {
     buildInputs = (old.buildInputs or []) ++ [ pkgs.makeWrapper ];
 
+    patches = [ ./nix/github.patch ];
     # get pdftocairo in PATH
     postInstall = ''
       wrapProgram $out/bin/fermatslastmargin --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.poppler_utils ]}

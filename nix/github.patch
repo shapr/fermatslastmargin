@@ -1,0 +1,13 @@
+diff --git a/src/Lib.hs b/src/Lib.hs
+index 780e837..3883549 100644
+--- a/src/Lib.hs
++++ b/src/Lib.hs
+@@ -358,7 +358,7 @@ data GithubConfig = GC {
+     , oauth    :: Text
+     } deriving (Show, Eq, Ord)
+ 
+-githubSpec :: ValueSpec GithubConfig
++githubSpec :: ValueSpecs GithubConfig
+ githubSpec = sectionsSpec "github" $
+          do username <- reqSection "username" "GitHub username"
+             oauth <- reqSection "oauth" "OAuth Token for GitHub"
