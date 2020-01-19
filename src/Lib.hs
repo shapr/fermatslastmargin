@@ -358,7 +358,7 @@ data GithubConfig = GC {
     , oauth    :: Text
     } deriving (Show, Eq, Ord)
 
-githubSpec :: ValueSpec GithubConfig
+githubSpec :: ValueSpecs GithubConfig
 githubSpec = sectionsSpec "github" $
          do username <- reqSection "username" "GitHub username"
             oauth <- reqSection "oauth" "OAuth Token for GitHub"
