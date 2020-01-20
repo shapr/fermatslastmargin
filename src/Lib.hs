@@ -10,62 +10,85 @@
 module Lib where
 
 import           Config.Schema
-import           Control.Monad         (filterM, join)
+import           Control.Monad           (filterM, join)
 import           Control.Monad.Extra
-import           Data.Aeson            (FromJSON (..), ToJSON, Value (..),
-                                        decode, decodeStrict, (.:), (.:?))
-import           Data.Aeson.Text       (encodeToLazyText)
-import qualified Data.ByteString       as BS
-import qualified Data.ByteString.Lazy  as BSL
-import           Data.Char             (toLower)
-import           Data.List             (intersperse)
-import qualified Data.Map.Strict       as M
-import           Data.Maybe            (catMaybes, fromMaybe, isJust)
-import           Data.Text             (Text, pack)
-import qualified Data.Text             as T
-import           Data.Text.Encoding    (decodeUtf8)
-import qualified Data.Text.Lazy        as TL
-import           Data.Text.Lazy.IO     as I
-import           Data.Time.Calendar    (Day, fromGregorian, showGregorian)
+import           Data.Aeson              (FromJSON (..), ToJSON, Value (..),
+                                          decode, decodeStrict, (.:), (.:?))
+import           Data.Aeson.Text         (encodeToLazyText)
+import qualified Data.ByteString         as BS
+import qualified Data.ByteString.Lazy    as BSL
+import           Data.Char               (toLower)
+import           Data.List               (intersperse)
+import qualified Data.Map.Strict         as M
+import           Data.Maybe              (catMaybes, fromMaybe, isJust)
+import           Data.Text               (Text, pack)
+import qualified Data.Text               as T
+import           Data.Text.Encoding      (decodeUtf8)
+import qualified Data.Text.Lazy          as TL
+import           Data.Text.Lazy.IO       as I
+import           Data.Time.Calendar      (Day, fromGregorian, showGregorian)
 import           GHC.Generics
+import           GitHub.Data.Definitions (Error)
+import           GitHub.Data.Repos       (Repo)
 import           Lib.Github
 import           Lucid
-import           Network.HTTP.Client   (Manager)
+import           Network.HTTP.Client     (Manager)
 import           System.Directory
-import           System.Exit           (ExitCode)
-import           System.FilePath       (combine, splitFileName, (</>))
-import           System.FilePath.Find  (always, fileName, find, (~~?))
-import           System.FilePath.Manip (renameWith)
-import           System.Process        (StdStream (..), close_fds,
-                                        createProcess, cwd, proc, std_err,
-                                        std_in, std_out, waitForProcess)
-import qualified Text.Fuzzy            as FZ
+import           System.Exit             (ExitCode)
+import           System.FilePath         (combine, splitFileName, (</>))
+import           System.FilePath.Find    (always, fileName, find, (~~?))
+import           System.FilePath.Manip   (renameWith)
+import           System.Process          (StdStream (..), close_fds,
+                                          createProcess, cwd, proc, std_err,
+                                          std_in, std_out, waitForProcess)
+import qualified Text.Fuzzy              as FZ
 import           Text.Read
-import           Web.Scotty            (Param)
+import           Web.Scotty              (Param)
 
-import Debug.Trace
 
--- | Map from DOI to Paper
-type FLMState = M.Map Text Paper -- local user state
+--------------
+--- Papers ---
+--------------
 
--- | Map from friend name to FLMState
-type FriendState = M.Map Text FLMState
-
-emptyPaper :: Paper
-emptyPaper = Paper "" "" (read "1000-01-01") "" []
+type PaperUID = Text
 
 data Paper = Paper {
-      uid       :: Text -- usually DOI
-    , author    :: Text -- really needs to be [Text] at some point
-    , published :: Day -- unpublished or pre-prints? (Maybe Day) instead?
+      uid       :: PaperUID -- usually DOI
+    , author    :: Text     -- really needs to be [Text] at some point
+    , published :: Day      -- unpublished or pre-prints? (Maybe Day) instead?
     , title     :: Text
     , notes     :: ![Annotation]
     } deriving (Show, Generic, ToJSON, FromJSON)
 
+emptyPaper :: Paper
+emptyPaper = Paper "" "" (read "1000-01-01") "" []
+
+-- | given a directory for an organization, read any paper.json files into Paper values
+readPaper :: FilePath -> IO [Paper]
+readPaper fp = do
+  fns <- findPaper fp "paper.json"
+  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
+  pure $ catMaybes mbPs
+
+-- | assume the dir given is the *USER* directory where all papers have their own directory
+-- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
+-- | or perhaps "~/.fermatslastmargin/friends/pigworker" "10.4204/EPTCS.275.6"
+writePaper :: FilePath -> Paper -> IO FilePath
+writePaper fp p = do
+  let fullDir = fp </> T.unpack (uid p)
+  _ <- createDirectoryIfMissing True fullDir
+  I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
+  return fullDir
+
+
+-------------------
+--- Annotations ---
+-------------------
+
 data Annotation = Annotation {
       content    :: Text
     , pageNumber :: Int -- if this ever exceeds a 64 bit Int, something is very wrong
-    , paperuid   :: Text -- this makes life much easier
+    , paperuid   :: PaperUID -- this makes life much easier
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 -- read and save state
@@ -84,6 +107,14 @@ upsertAnnotation a@(Annotation c pnum _) oldAnns = if doesExist then replaceAnno
 replaceAnnotation :: Int -> Text -> [Annotation] -> [Annotation]
 replaceAnnotation _ _ [] = []
 replaceAnnotation i content (a@(Annotation _ p u):anns) = if p == i then Annotation content p u : anns else a : replaceAnnotation i content anns
+
+
+-----------------
+--- FLM State ---
+-----------------
+
+-- | Map from DOI to Paper
+type FLMState = M.Map PaperUID Paper -- local user state
 
 -- | read the names of the directories in the config directory
 readState :: FilePath -> IO FLMState
@@ -104,44 +135,41 @@ writeState fp flms = do
   print $ "fp is " <> fp <> " and FLMState is " <> show flms
   mapM_ (writePaper fp) (M.elems flms)
 
--- | given a directory for an organization, read any paper.json files into Paper values
-readPaper :: FilePath -> IO [Paper]
-readPaper fp = do
-  fns <- findPaper fp "paper.json"
-  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
-  pure $ catMaybes mbPs
 
--- | assume the dir given is the *USER* directory where all papers have their own directory
--- | arguments will be something like "~/.fermatslastmargin/localuser" and "10.4204/EPTCS.275.6"
--- | or perhaps "~/.fermatslastmargin/friends/pigworker" "10.4204/EPTCS.275.6"
-writePaper :: FilePath -> Paper -> IO FilePath
-writePaper fp p = do
-  let fullDir = fp </> T.unpack (uid p)
-  _ <- createDirectoryIfMissing True fullDir
-  I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
-  return fullDir
+--------------------
+--- Friend State ---
+--------------------
+
+type Username = Text
+
+-- | Map from friend name to FLMState
+type FriendState = M.Map Username FLMState
+
+readFriendPaths :: FilePath -> IO ([FilePath], [(FilePath, FilePath)])
+readFriendPaths fp = do
+  friendNames <- listDirectory fp
+  friendDirs <- filterDirectoryPair $ zip (fmap (fp </>) friendNames) friendNames
+  pure (friendNames, friendDirs)
 
 -- | given the friends dir, load FLM state from each of those dirs
 readFriendState :: FilePath -> IO FriendState
 readFriendState fp = do
-  friendNames <- listDirectory fp
-  friendDirs <- filterDirectoryPair $ zip (fmap (fp </>) friendNames) friendNames
+  (friendNames, friendDirs) <- readFriendPaths fp
   friendStates <- mapM readState (fst <$> friendDirs)
   pure $ M.fromList (zip (T.pack <$> friendNames) friendStates)
 
 -- | front end code is easier if FriendState is converted to M.Map paperUID [username]
-type FriendView = M.Map Text [Text]
+type FriendView = M.Map PaperUID [Username]
 
--- ugh, code from tired brain, there must be a simpler way!
-friendView :: FriendState -> FriendView
-friendView fs = M.fromListWith (<>) (rewire (boph <$> M.toList fs))
+tagFriendPapers :: Username -> [Paper] -> [(PaperUID, [Username])]
+tagFriendPapers friend = fmap (flip (,) [friend] . uid)
 
-boph :: (a1, M.Map k a2) -> (a1, [k])
-boph (friendname,flmstate) = (friendname, M.keys flmstate)
-
-rewire :: [(a,[b])] -> [(b,[a])]
-rewire [] = []
-rewire ((username,uids):friends) = zip uids (repeat [username]) <> rewire friends
+readFriendView :: FilePath -> IO FriendView
+readFriendView fp = do
+  (friendNames, friendDirs) <- readFriendPaths fp
+  friendPapers <- mapM readPaper (fst <$> friendDirs)
+  let taggedPapers = join $ zipWith tagFriendPapers (T.pack <$> friendNames) friendPapers
+  pure $ M.fromListWith (++) taggedPapers
 
 -- what's wrong with the dang parser here?
 filterDirectory :: [FilePath] -> IO [FilePath]
@@ -155,7 +183,10 @@ filterDirectoryPair = filterM (\(a,_) -> doesDirectoryExist a)
 filterFile :: [FilePath] -> IO [FilePath]
 filterFile = filterM doesFileExist
 
--- html page stuff
+----------------------
+--- HTML Rendering ---
+----------------------
+
 flmheader :: Monad m => HtmlT m ()
 flmheader = h1_ [class_ "site-title"] "Fermat's Last Margin"
 
@@ -274,7 +305,7 @@ paperstable rows =
         th_ "Pub Date"
         th_ "DOI"
         th_ "Authors"
-    sequence_ $ viewPaper <$> (traceShowId rows)
+    sequence_ $ viewPaper <$> rows
 
 viewPaper :: Monad m => Paper -> HtmlT m ()
 viewPaper r = tr_ $
@@ -308,6 +339,11 @@ foundPaper r = tr_ $
      tdit uid
      tdit author
           where tdit f = td_ . toHtml $ f r
+
+
+-------------------------------
+--- Query String Processing ---
+-------------------------------
 
 -- ?doi=10.25&title=this+is+a+title&author=Shae+Erisson&pubdate=2019-01-01
 mbP :: [Param] -> Maybe Paper
@@ -369,7 +405,11 @@ killZeroes :: [Char] -> [Char]
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
 
--- github config
+
+----------------------
+--- Git Operations ---
+----------------------
+
 data GithubConfig = GC {
       username :: Text
     , oauth    :: Text
@@ -452,8 +492,12 @@ checkGitConfig value = do -- value should be either "user.name" or "user.email"
 
 -- looks like names imported from Lib.Github are not automatically exported? who knew?!
 
+createDR :: String -> IO (Either Error Repo)
 createDR = createDataRepo
+
+pnRepo :: Repo -> (Text, Text)
 pnRepo = pairNameRepo
+
 decodeSR :: BSL.ByteString -> Maybe Wrapper
 decodeSR = decode
 

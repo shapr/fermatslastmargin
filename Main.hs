@@ -51,9 +51,7 @@ main = do
   unless haveConfigFile (writeFile configFile "username: \"\"\noauth: \"\"")
   gc <- loadValueFromFile githubSpec configFile
   friendState <- readFriendState fullFriendsDir
-  -- M.Map paperUID [username] so the front end can easily display friends who have notes on this paper
-  let friendPapers = friendView friendState
-  -- print friendState
+  friendPapers <- readFriendView fullFriendsDir
   scotty 3000 $ do
          middleware logStdoutDev
          middleware $ staticPolicy (noDots >-> addBase "static")
