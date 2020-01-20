@@ -75,11 +75,12 @@ main = do
                     papersearch                 -- Render paper search form
                     notespush                   -- Render "Push Notes" button
                     friendspull                 -- Render "Pull Friends Notes" button
+                    paperfilterForm             -- Render paper filter form
                     paperstable papers          -- Render papers table
                     papersadd (utctDay nowTime) -- Render add paper form
 
-         get "/filter/:searchTerm" $ do
-                  searchTerm <- param "searchTerm"
+         get "/filter" $ do
+                  (searchTerm :: T.Text)  <- param "pattern"
                   nowTime <- liftIO getCurrentTime
                   papers  <- liftIO $ filterpapers searchTerm <$> readPaper fullUserDir
                   html . renderText $ pageTemplate "Papers" $ do
@@ -87,6 +88,7 @@ main = do
                     papersearch                 -- Render paper search form
                     notespush                   -- Render "Push Notes" button
                     friendspull                 -- Render "Pull Friends Notes" button
+                    paperfilterForm             -- Render paper filter form
                     paperstable papers          -- Render papers table
                     papersadd (utctDay nowTime) -- Render add paper form
 
