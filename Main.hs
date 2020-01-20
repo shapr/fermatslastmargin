@@ -69,8 +69,26 @@ main = do
 
          get "/" $ do
                   nowTime <- liftIO getCurrentTime
-                  userState <- liftIO $ readState fullUserDir
-                  html . renderText $ pageTemplate "Papers" (flmheader >> papersearch >> notespush >> friendspull >> paperstable (M.elems userState) >> papersadd (utctDay nowTime))
+                  papers  <- liftIO $ readPaper fullUserDir
+                  html . renderText $ pageTemplate "Papers" $ do
+                    flmheader                   -- Render header
+                    papersearch                 -- Render paper search form
+                    notespush                   -- Render "Push Notes" button
+                    friendspull                 -- Render "Pull Friends Notes" button
+                    paperstable papers          -- Render papers table
+                    papersadd (utctDay nowTime) -- Render add paper form
+
+         get "/filter/:searchTerm" $ do
+                  searchTerm <- param "searchTerm"
+                  nowTime <- liftIO getCurrentTime
+                  papers  <- liftIO $ filterpapers searchTerm <$> readPaper fullUserDir
+                  html . renderText $ pageTemplate "Papers" $ do
+                    flmheader                   -- Render header
+                    papersearch                 -- Render paper search form
+                    notespush                   -- Render "Push Notes" button
+                    friendspull                 -- Render "Pull Friends Notes" button
+                    paperstable papers          -- Render papers table
+                    papersadd (utctDay nowTime) -- Render add paper form
 
          post "/setauth" $ do -- this isn't real secure
                   uname <- param "username" -- don't shadow username, it's a record accessor for GithubConfig

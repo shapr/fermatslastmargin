@@ -26,7 +26,7 @@ import qualified Data.Text             as T
 import           Data.Text.Encoding    (decodeUtf8)
 import qualified Data.Text.Lazy        as TL
 import           Data.Text.Lazy.IO     as I
-import           Data.Time.Calendar    (Day, fromGregorian)
+import           Data.Time.Calendar    (Day, fromGregorian, showGregorian)
 import           GHC.Generics
 import           Lib.Github
 import           Lucid
@@ -39,8 +39,11 @@ import           System.FilePath.Manip (renameWith)
 import           System.Process        (StdStream (..), close_fds,
                                         createProcess, cwd, proc, std_err,
                                         std_in, std_out, waitForProcess)
+import qualified Text.Fuzzy            as FZ
 import           Text.Read
 import           Web.Scotty            (Param)
+
+import Debug.Trace
 
 -- | Map from DOI to Paper
 type FLMState = M.Map Text Paper -- local user state
@@ -247,6 +250,11 @@ notespush = a_ [href_ "/gitpush", class_ "git gitpush"] "Push notes to GitHub"
 friendspull :: Monad m => HtmlT m ()
 friendspull = a_ [href_ "/gitpull", class_ "git gitpull"] "Pull friends' notes from GitHub"
 
+filterpapers :: Text -> [Paper] -> [Paper]
+filterpapers pat rows = fmap FZ.original $ FZ.filter pat rows mempty mempty extract False
+  where
+    extract (Paper doi auth pub title' _) = doi <> auth <> title' <> T.pack (showGregorian pub)
+
 paperstable :: Monad m => [Paper] -> HtmlT m ()
 paperstable rows =
   table_ [class_ "paperlist"] $ do
@@ -257,7 +265,7 @@ paperstable rows =
         th_ "Pub Date"
         th_ "DOI"
         th_ "Authors"
-    sequence_ $ viewPaper <$> rows
+    sequence_ $ viewPaper <$> (traceShowId rows)
 
 viewPaper :: Monad m => Paper -> HtmlT m ()
 viewPaper r = tr_ $
