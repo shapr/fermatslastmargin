@@ -3,7 +3,7 @@
 module Main where
 
 import           Config.Schema.Load
-import           Control.Monad                        (unless, (<=<))
+import           Control.Monad                        (unless, (<=<), void)
 import           Control.Monad.Extra                  (ifM)
 import           Control.Monad.IO.Class               (liftIO)
 import qualified Data.ByteString.Char8                as BS
@@ -63,8 +63,8 @@ main = do
          -- can't possibly be fast to check for EVERY SINGLE REQUEST, what's easier/simpler ?
          get (function $ const $ Just []) $ do
                   -- is this really a good idea?
-                  gc <- liftIO $ loadValueFromFile githubSpec configFile
-                  unless ("" == (username gc) || ("" == (oauth gc))) next
+                  gc' <- liftIO $ loadValueFromFile githubSpec configFile
+                  unless ("" == (username gc) || ("" == (oauth gc'))) next
                   html . renderText $ pageTemplate "Set GitHub Configuration Values" authform
 
          get "/" $ do
@@ -94,10 +94,10 @@ main = do
 
          post "/setauth" $ do -- this isn't real secure
                   uname <- param "username" -- don't shadow username, it's a record accessor for GithubConfig
-                  oauth <- param "oauth"
+                  oauth' <- param "oauth"
                   -- https://github.com/glguy/config-schema/issues/2
-                  liftIO $ writeFile configFile ("username: \"" <> uname <> "\"\noauth: \"" <> oauth <> "\"")
-                  gc <- liftIO $ loadValueFromFile githubSpec configFile
+                  liftIO $ writeFile configFile ("username: \"" <> uname <> "\"\noauth: \"" <> oauth' <> "\"")
+                  void . liftIO $ loadValueFromFile githubSpec configFile
                   html "Your credentials have been saved"
                   redirect "/newuser"
 
@@ -115,7 +115,7 @@ main = do
                                          createDirectoryIfMissing True paperDir -- gotta have this
                                          BS.writeFile (paperDir  </> "paper.pdf") (BSL.toStrict $ third $ head fs') -- head scares me, gonna die at some point
                                          _ <- renderPageImages paperDir -- should really check/report failure here
-                                         print "should have worked now!"
+                                         putStrLn "should have worked now!"
                                        redirect "/"
                                      Nothing -> raise "something's broken"
 
@@ -132,9 +132,7 @@ main = do
 
          post "/annotate" $ do
                   (jd :: Annotation) <- jsonData
-                  userState <- liftIO $ readState fullUserDir
-                  let puid = paperuid jd
-                      mbPaper = M.lookup puid userState
+                  mbPaper <- liftIO $ M.lookup (paperuid jd) <$> readState fullUserDir
                   final <- case mbPaper of
                              Nothing -> raise "That Paper does not exist"
                              Just p  -> liftIO $ writePaper fullUserDir $ p { notes = upsertAnnotation jd (notes p)}
@@ -145,14 +143,13 @@ main = do
                   pagenum <- param "pagenum"
                   puid <- param "paperuid"
                   ps <- params
-                  userState <- liftIO $ readState fullUserDir
+                  mbPaper <- liftIO $ M.lookup puid <$> readState fullUserDir
                   -- point free code below replaces a big pile of pattern matches on Maybe!
                   let mbFriendnote = maybeGetAnnotation pagenum . notes -- that friend's paper have any notes for this page?
                                      <=< M.lookup puid -- does that friend have this paper?
                                      <=< flip M.lookup friendState . TL.toStrict -- does that friend exist?
                                      <=< lookup "viewfriend" $ ps -- is the user trying to view notes from a friend?
                       friendnote = fromMaybe (Annotation "" pagenum puid) mbFriendnote
-                  let mbPaper = M.lookup puid userState
                   final <- case mbPaper of
                             Nothing -> raise "That Paper does not exist"
                             Just p  -> pure $ fromMaybe (Annotation "Press Enter to edit this note" pagenum puid) (maybeGetAnnotation pagenum (notes p)) -- ugh!
@@ -163,7 +160,7 @@ main = do
                   json $ M.findWithDefault [] puid friendPapers
 
          get "/gitpush" $ do
-                  (exitCode, result) <- liftIO $ pushEverything fullUserDir
+                  (exitCode, _) <- liftIO $ pushEverything fullUserDir
                   case exitCode of
                     ExitSuccess -> redirect "/"
                     _           -> html "Failed to push to github"
@@ -186,8 +183,8 @@ main = do
                   liftIO $ do
                     let cleanPapers = sanitizePaper <$> newPapers
                     print cleanPapers
-                    userState <- readState fullUserDir
-                    print userState
+                    userState' <- readState fullUserDir
+                    print userState'
                     let newState = addFoundPapers userState cleanPapers
                     print newState
                     writeState fullUserDir newState
@@ -195,8 +192,7 @@ main = do
 
          get "/newuser" $ do
                   -- create the repo on github
-                  gc <- liftIO $ loadValueFromFile githubSpec configFile
-                  createRes <- liftIO $ createDR (T.unpack $ oauth gc)
+                  createRes <- liftIO $ loadValueFromFile githubSpec configFile >>= createDR . T.unpack . oauth
                   -- clone the repo from github into fullUserDir
                   case createRes of
                     Left e -> html $ "There's a problem: " <> (TL.pack $ show e)
@@ -207,27 +203,25 @@ main = do
 
          get "/editmetadata" $ do
                   (puid :: T.Text) <- param "uidtoupdate"
-                  userState <- liftIO $ readState fullUserDir
-                  let mbPaper = M.lookup puid userState
+                  mbPaper <- liftIO $ M.lookup puid <$> readState fullUserDir
                   case mbPaper of
                     Nothing -> html "That Paper does not exist"
                     Just p  -> html . renderText $ pageTemplate "Edit metadata" (paperedit p)
 
          post "/editmetadata" $ do
                   (updatedpaper :: Paper) <- jsonData
-                  liftIO $ print ("it did not shit itself" <> show updatedpaper)
-                  userState <- liftIO $ readState fullUserDir
-                  let mbPaper = M.lookup (uid updatedpaper) userState
+                  liftIO $ print ("it did not sh*t itself" <> show updatedpaper)
+                  mbPaper <- liftIO $ M.lookup (uid updatedpaper) <$> readState fullUserDir
                   case mbPaper of
                     Nothing -> do
-                      liftIO $ print "could not find the paper"
+                      liftIO $ putStrLn "could not find the paper"
                       html "That Paper does not exist"
                     Just p  -> do
-                      liftIO $ writePaper fullUserDir $ p {
+                      void . liftIO $ writePaper fullUserDir $ p {
                                    uid = uid updatedpaper
                                  , author = author updatedpaper
                                  , published = published updatedpaper
                                  , notes = (notes p) -- don't modify the notes, copy from the previous Paper value
                                  }
-                      liftIO $ print "paper written successfully"
+                      liftIO $ putStrLn "paper written successfully"
                       redirect "/"
