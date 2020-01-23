@@ -84,3 +84,7 @@ The front end javascript calls HTTP endpoints defined in Main.hs.
 - pulling remote notes from github GETs `/gitpull`
 - creating a new paper POSTs to `/paper`
 - creating a new user will hit `/newuser`
+
+# Migrate!
+
+If you created a local repository and annotated papers before January 2020, you'll need to do `cabal run migrate` to get your repository in the new format!
