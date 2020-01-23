@@ -24,6 +24,7 @@ common deps
     , filemanip
     , filepath
     , github                 ^>=0.21
+    , fuzzy
     , http-client
     , http-client-tls
     , http-types
