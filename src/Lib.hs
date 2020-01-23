@@ -110,7 +110,8 @@ writeState fp flms = do
 -- | given a directory for an organization, read any paper.json files into Paper values
 readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
-  fns  <- filter (isSuffixOf "paper.json") <$> listDirectory fp
+  fns  <- filter (isSuffixOf "_paper.json") <$> listDirectory fp
+  print fns
   mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
   pure $ catMaybes mbPs
 
@@ -120,7 +121,6 @@ readPaper fp = do
 writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
   let fullDir = fp </> paperFileName p
-  _ <- createDirectoryIfMissing True fullDir
   I.writeFile (fullDir ++ "_paper.json") (encodeToLazyText p)
   return fullDir
 
