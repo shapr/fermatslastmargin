@@ -18,7 +18,7 @@ import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as BSL
 import           Data.Char             (toLower)
-import           Data.List             (intersperse)
+import           Data.List             (intersperse, isSuffixOf)
 import qualified Data.Map.Strict       as M
 import           Data.Maybe            (catMaybes, fromMaybe, isJust)
 import           Data.Text             (Text, pack)
@@ -58,6 +58,12 @@ data Paper = Paper {
     , title     :: Text
     , notes     :: ![Annotation]
     } deriving (Show, Generic, ToJSON, FromJSON)
+
+--fromPaperFileName :: FilePath -> Text
+--fromPaperFileName = T.replace . T.replace "\\\\" "\\" . T.replace "\\:" ":" . T.replace ":" "/" . T.pack
+
+paperFileName :: Paper -> FilePath
+paperFileName = T.unpack . T.replace "/" ":" . T.replace ":" "\\:" . T.replace "\\" "\\\\" . uid
 
 data Annotation = Annotation {
       content    :: Text
@@ -104,7 +110,7 @@ writeState fp flms = do
 -- | given a directory for an organization, read any paper.json files into Paper values
 readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
-  fns <- findPaper fp "paper.json"
+  fns  <- filter (isSuffixOf "paper.json") <$> listDirectory fp
   mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
   pure $ catMaybes mbPs
 
@@ -113,7 +119,7 @@ readPaper fp = do
 -- | or perhaps "~/.fermatslastmargin/friends/pigworker" "10.4204/EPTCS.275.6"
 writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
-  let fullDir = fp </> T.unpack (uid p)
+  let fullDir = fp </> paperFileName p
   _ <- createDirectoryIfMissing True fullDir
   I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
   return fullDir
@@ -312,10 +318,6 @@ mbP' ps = Paper
           <*> Just []
     where upl = flip lookup ps
           supl a = TL.toStrict <$> upl a
-
--- find file in subdirs
-findPaper :: FilePath -> FilePath -> IO [FilePath]
-findPaper top match = find always (fileName ~~? match) top
 
 -- random useful thing
 third :: (a, b, c) -> c

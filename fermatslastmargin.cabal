@@ -10,10 +10,11 @@ maintainer:         shae@scannedinavian.com
 category:           Web
 extra-source-files: CHANGELOG.md
 
-library
+common deps
+  default-language: Haskell2010
   build-depends:
     , aeson
-    , base                   >=4.11 && <4.13
+    , base                   >=4.11 && <4.14
     , bytestring
     , config-schema
     , config-value
@@ -33,36 +34,18 @@ library
     , time
     , wai-middleware-static
 
+library
+  import: deps
   hs-source-dirs:   src
-  default-language: Haskell2010
+  ghc-options:      -ferror-spans -fshow-loaded-modules -Wall
   exposed-modules:
     Lib
     Lib.Github
 
-  ghc-options:      -ferror-spans -fshow-loaded-modules -Wall
-
 executable fermatslastmargin
+  import: deps
   main-is:          Main.hs
-  build-depends:
-    , aeson
-    , base                   >=4.11 && <4.13
-    , bytestring
-    , config-schema
-    , containers
-    , directory
-    , extra
-    , fermatslastmargin
-    , filepath
-    , http-client
-    , http-client-tls
-    , lucid
-    , resourcet
-    , scotty
-    , text
-    , time
-    , unix-time              >=0    && <=0.5
-    , wai-extra
-    , wai-middleware-static
-
-  default-language: Haskell2010
   ghc-options:      -threaded -ferror-spans -fshow-loaded-modules -Wall
+  build-depends:
+      fermatslastmargin
+    , wai-extra
