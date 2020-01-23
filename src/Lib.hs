@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 module Lib where
 
@@ -162,7 +163,7 @@ readFriendState fp = do
 type FriendView = M.Map PaperUID [Username]
 
 tagFriendPapers :: Username -> [Paper] -> [(PaperUID, [Username])]
-tagFriendPapers friend = fmap (flip (,) [friend] . uid)
+tagFriendPapers friend = fmap ((,[friend]) . uid)
 
 readFriendView :: FilePath -> IO FriendView
 readFriendView fp = do
