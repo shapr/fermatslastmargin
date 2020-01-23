@@ -49,3 +49,10 @@ executable fermatslastmargin
   build-depends:
       fermatslastmargin
     , wai-extra
+
+executable migrate
+  import: deps
+  main-is:          Migrate.hs
+  ghc-options:      -threaded -ferror-spans -fshow-loaded-modules -Wall
+  build-depends:
+      fermatslastmargin
