@@ -18,7 +18,7 @@ import           Data.Aeson.Text       (encodeToLazyText)
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Lazy  as BSL
 import           Data.Char             (toLower)
-import           Data.List             (intersperse, isSuffixOf)
+import           Data.List             (intersperse, isPrefixOf, isSuffixOf)
 import qualified Data.Map.Strict       as M
 import           Data.Maybe            (catMaybes, fromMaybe, isJust)
 import           Data.Text             (Text, pack)
@@ -91,12 +91,8 @@ replaceAnnotation i content (a@(Annotation _ p u):anns) = if p == i then Annotat
 -- | read the names of the directories in the config directory
 readState :: FilePath -> IO FLMState
 readState fp = do
-  allfiles <- listDirectory fp
-  toplevel <- filterDirectory $ fmap (fp </>) allfiles -- put dirname in front
-  ps <- sequence $ readPaper <$> toplevel
-  let ps' = concat ps -- drop the Paper values that failed to decode
-      -- TODO should I be using dir names? if I use uid from Paper elsewhere, use that instead! TODO
-  return $ M.fromList $ zip (uid <$> ps') ps' -- set the unique ID as the key, the Paper as the value
+  ps <- readPaper fp
+  return $ M.fromList $ map (\p -> (uid p, p)) ps -- set the unique ID as the key, the Paper as the value
 
 -- | filepath should be the FULL path to the user dir, so either localuser or a friendname
 writeState :: FilePath -> FLMState -> IO ()
@@ -110,8 +106,8 @@ writeState fp flms = do
 -- | given a directory for an organization, read any paper.json files into Paper values
 readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
-  fns  <- filter (isSuffixOf "_paper.json") <$> listDirectory fp
-  print fns
+  dl <- listDirectory fp
+  let fns = map (fp</>) $ filter (isSuffixOf "_paper.json") dl
   mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
   pure $ catMaybes mbPs
 
