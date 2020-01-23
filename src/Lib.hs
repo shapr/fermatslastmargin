@@ -121,7 +121,7 @@ writePaper :: FilePath -> Paper -> IO FilePath
 writePaper fp p = do
   let fullDir = fp </> paperFileName p
   _ <- createDirectoryIfMissing True fullDir
-  I.writeFile (fullDir </> "paper.json") (encodeToLazyText p)
+  I.writeFile (fullDir ++ "_paper.json") (encodeToLazyText p)
   return fullDir
 
 -- | given the friends dir, load FLM state from each of those dirs
