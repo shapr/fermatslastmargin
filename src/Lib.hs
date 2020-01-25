@@ -11,7 +11,6 @@
 module Lib where
 
 import           Config.Schema
-import           Control.Monad           (filterM, join)
 import           Control.Monad.Extra
 import           Data.Aeson              (FromJSON (..), ToJSON, Value (..),
                                           decode, decodeStrict, (.:), (.:?))
