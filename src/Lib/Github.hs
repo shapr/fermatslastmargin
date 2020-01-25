@@ -9,6 +9,7 @@ import           GitHub.Data.Definitions
 import qualified GitHub.Endpoints.Repos  as Repos
 import           GitHub.Endpoints.Users
 import           GitHub.Internal.Prelude (fromString)
+import qualified GitHub.Request          as GR
 import           Network.HTTP.Client     (Manager)
 
 {-
@@ -28,7 +29,7 @@ findRepos localusername oauthToken mgmt = do
                   Right u -> u
       userNames = fromUserName . simpleUserLogin <$> F.toList friends
   print $ "user is following " <> show (length friends) <> " friends."
-  res <- sequence $ flmRepo <$> userNames
+  res <- sequence $ flmRepo auth <$> userNames
   let result = pairNameRepo <$> rights res
   print $ "found valid friend repos " <> show result
   pure result
@@ -36,8 +37,8 @@ findRepos localusername oauthToken mgmt = do
 pairNameRepo :: Repo -> (T.Text, T.Text)
 pairNameRepo r = (untagName . simpleOwnerLogin $ repoOwner r, getUrl $ repoUrl r)
 
-flmRepo :: Name Owner -> IO (Either Error Repo)
-flmRepo = flip Repos.repository (mkName ([] :: [Repos.Repo]) "flmdata")
+flmRepo :: AuthMethod am => am -> Name Owner -> IO (Either Error Repo)
+flmRepo auth = GR.github auth $ flip Repos.repositoryR (mkName ([] :: [Repos.Repo]) "flmdata")
 
 findRepos' :: T.Text -> T.Text -> Manager -> IO [(T.Text,T.Text)]
 findRepos' username token mgmt =
@@ -46,16 +47,22 @@ findRepos' username token mgmt =
 createDataRepo :: [Char] -> IO (Either Error Repo)
 createDataRepo oauthToken = do
   let auth = GitHub.OAuth . fromString $ oauthToken
-  Repos.createRepo' auth flmdatarepo
+  GR.github auth $ Repos.createRepoR flmdatarepo
 
 -- empty flmdata repo for initial startup
 flmdatarepo :: NewRepo
 flmdatarepo = NewRepo {
                 newRepoName = mkName ([] :: [Repo]) "flmdata"
-              , newRepoDescription = Just "Data repo for Fermat's Last Margin"
-              , newRepoHomepage = Nothing
-              , newRepoPrivate = Just False
-              , newRepoHasIssues = Just False
-              , newRepoHasWiki = Just False
+              , newRepoAllowMergeCommit = Just True
+              , newRepoAllowRebaseMerge = Just True
+              , newRepoAllowSquashMerge = Just True
               , newRepoAutoInit = Just True -- GitHub, please just setup something for me!
+              , newRepoDescription = Just "Data repo for Fermat's Last Margin"
+              , newRepoGitignoreTemplate = Nothing
+              , newRepoHasIssues = Just False
+              , newRepoHasProjects = Just False
+              , newRepoHasWiki = Just False
+              , newRepoHomepage = Nothing
+              , newRepoLicenseTemplate = Nothing -- this really needs to be a good documentation license
+              , newRepoPrivate = Just False
               }
