@@ -59,7 +59,7 @@ data Paper = Paper {
     , published :: Day      -- unpublished or pre-prints? (Maybe Day) instead?
     , title     :: Text
     , notes     :: ![Annotation]
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic, ToJSON, FromJSON, Eq, Ord)
 
 --fromPaperFileName :: FilePath -> Text
 --fromPaperFileName = T.replace . T.replace "\\\\" "\\" . T.replace "\\:" ":" . T.replace ":" "/" . T.pack
@@ -70,8 +70,8 @@ paperFileName = T.unpack . T.replace "/" ":" . T.replace ":" "\\:" . T.replace "
 data Annotation = Annotation {
       content    :: Text
     , pageNumber :: Int -- if this ever exceeds a 64 bit Int, something is very wrong
-    , paperuid   :: Text -- this makes life much easier
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    , paperuid   :: PaperUID -- this makes life much easier
+    } deriving (Show, Generic, ToJSON, FromJSON, Eq, Ord)
 
 -- read and save state
 maybeGetPage :: Int -> [Annotation] -> Maybe Text
@@ -118,7 +118,7 @@ readPaper :: FilePath -> IO [Paper]
 readPaper fp = do
   dl <- listDirectory fp
   let fns = map (fp</>) $ filter (isSuffixOf "_paper.json") dl
-  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty
+  mbPs <- mapM (fmap decodeStrict . BS.readFile) fns -- this isn't pretty ☹ FIXME
   pure $ catMaybes mbPs
 
 -- | assume the dir given is the *USER* directory where all papers have their own directory
@@ -277,15 +277,15 @@ friendspull = a_ [href_ "/gitpull", class_ "git gitpull"] "Pull friends' notes f
 
 paperfilterForm :: Monad m => HtmlT m ()
 paperfilterForm = do
-  form_ [action_ "/filter", method_ "get"] $ do
-    table_ [class_ "filter-form"] $ do
+  form_ [action_ "/filter", method_ "get"] $
+    table_ [class_ "filter-form"] $
       tr_ $ do
         td_ $ label_ "Filter"
         td_ $ input_ [type_ "text", name_ "pattern"]
         td_ $ input_ [type_ "submit", value_ "Apply"]
 
 filterpapers :: Text -> [Paper] -> [Paper]
-filterpapers pat rows = fmap FZ.original $ FZ.filter pat rows mempty mempty extract False
+filterpapers pat rows = FZ.original <$> FZ.filter pat rows mempty mempty extract False
   where
     extract (Paper doi auth pub title' _) = doi <> auth <> title' <> T.pack (showGregorian pub)
 
@@ -354,7 +354,7 @@ mbP' :: [Param] -> Maybe Paper
 mbP' ps = Paper
           <$> supl "doi"
           <*> supl "author"
-          <*> (join $ readMaybe =<< (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
+          <*> join (readMaybe =<< (TL.unpack <$> upl "pubdate")) -- SO MUCH CHEESE, lifting everything to Maybe then joining?!
           <*> supl "title"
           <*> Just []
     where upl = flip lookup ps
@@ -395,7 +395,7 @@ fixZ :: String -> String
 fixZ ('p':'a':'g':'e':'-':xs) = "page-" <> killZeroes xs
 fixZ n                        = n
 
-killZeroes :: [Char] -> [Char]
+killZeroes :: String -> String
 killZeroes ('0':xs) = killZeroes xs
 killZeroes x        = x
 
