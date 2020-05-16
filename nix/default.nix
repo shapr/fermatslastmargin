@@ -7,7 +7,7 @@ with rec {
       (self: super: super.lib.recursiveUpdate super {
         haskell = super.lib.recursiveUpdate super.haskell {
           packages = super.lib.recursiveUpdate super.haskell.packages {
-            ghc864 = super.haskell.packages.ghc864.override (old: {
+            ghc881 = super.haskell.packages.ghc881.override (old: {
               overrides = super.lib.composeExtensions
                 (old.overrides or (_: _: {}))
                 (hself: hsuper: {
@@ -25,5 +25,5 @@ with rec {
 rec {
   inherit pkgs;
   inherit sources;
-  hsPkgs = pkgs.haskell.packages.ghc864;
+  hsPkgs = pkgs.haskell.packages.ghc881;
 }

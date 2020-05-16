@@ -23,7 +23,7 @@ Distributing PDFs will get you sued for lots of money ( https://en.wikipedia.org
 * git clone this repository
 * run this from cabal `cabal run`
 * point your web browser to `localhost:3000`
-
+* run repository with nix-shell `nix-shell shell.nix --command "cabal run fermatslastmargin"`
 All of the annotations are saved in a local directory `~/.fermatslastmargin/localuser` and your friend's annotations are saved in `~/.fermatslastmargin/friends/<github_name_of_friend>`
 
 # Features
