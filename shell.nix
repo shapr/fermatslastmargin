@@ -12,6 +12,7 @@ hsPkgs.shellFor {
     stylish-haskell
     ghcid
     cabal-install
+    poppler_utils
   ];
 
   exactDeps = true;
