@@ -14,7 +14,7 @@ common deps
   default-language: Haskell2010
   build-depends:
     , aeson
-    , base                   >=4.13 && <=4.14
+    , base                   >=4.13 && <=4.15
     , bytestring
     , config-schema          >=1.0.0
     , config-value
@@ -24,7 +24,7 @@ common deps
     , filemanip
     , filepath
     , fuzzy
-    , github                 ^>=0.24
+    , github                 >=0.24
     , http-client
     , http-client-tls
     , http-types

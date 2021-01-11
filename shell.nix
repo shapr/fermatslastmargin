@@ -13,6 +13,7 @@ hsPkgs.shellFor {
     ghcid
     cabal-install
     poppler_utils
+    haskell-language-server
   ];
 
   exactDeps = true;
