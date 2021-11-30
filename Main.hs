@@ -64,7 +64,7 @@ main = do
     get (function $ const $ Just []) $ do
       -- is this really a good idea?
       gc' <- liftIO $ loadValueFromFile githubSpec configFile
-      unless ("" == (username gc) || ("" == (oauth gc'))) next
+      unless ("" == username gc || ("" == oauth gc')) next
       html . renderText $ pageTemplate "Set GitHub Configuration Values" authform
 
     get "/" $ do
@@ -142,7 +142,6 @@ main = do
       json final
 
     get "/getannotate" $ do
-      -- this should really be a GET, not a POST
       pagenum <- param "pagenum"
       puid <- param "paperuid"
       ps <- params
