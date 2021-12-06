@@ -15,9 +15,11 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Time
 import Lib
+import Lib.Github (validateAuthToken)
 import Lucid (renderText)
 import Network.HTTP.Client
 import Network.HTTP.Client.TLS (newTlsManager)
+import Network.HTTP.Types.Status (badRequest400)
 import Network.Wai.Middleware.RequestLogger
 import Network.Wai.Middleware.Static
 import Network.Wai.Parse
@@ -95,12 +97,15 @@ main = do
     post "/setauth" $ do
       -- this isn't real secure
       uname <- param "username" -- don't shadow username, it's a record accessor for GithubConfig
-      oauth' <- param "oauth"
-      -- https://github.com/glguy/config-schema/issues/2
-      liftIO $ writeFile configFile ("username: \"" <> uname <> "\"\noauth: \"" <> oauth' <> "\"")
-      void . liftIO $ loadValueFromFile githubSpec configFile
-      html "Your credentials have been saved"
-      redirect "/newuser"
+      mAuthToken <- validateAuthToken . T.strip <$> param "oauth"
+      case mAuthToken of
+        Nothing -> raiseStatus badRequest400 "Invalid github authentication token"
+        Just authToken -> do
+          -- https://github.com/glguy/config-schema/issues/2
+          liftIO $ writeFile configFile ("username: \"" <> uname <> "\"\noauth: \"" <> T.unpack authToken <> "\"")
+          void . liftIO $ loadValueFromFile githubSpec configFile
+          html "Your credentials have been saved"
+          redirect "/newuser"
 
     post "/paper" $ do
       ps <- params
