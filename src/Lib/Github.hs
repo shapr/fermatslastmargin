@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Lib.Github where
 
+import           Data.Char               (isAsciiLower, isAsciiUpper, isDigit)
 import           Data.Either             (rights)
 import qualified Data.Foldable           as F
 import qualified Data.Text               as T
@@ -66,3 +67,19 @@ flmdatarepo = NewRepo {
               , newRepoLicenseTemplate = Nothing -- this really needs to be a good documentation license
               , newRepoPrivate = Just False
               }
+
+-- | Basic validation of Github authentication tokens. Returns `Just` the token
+-- if it is valid, `Nothing` otherwise.
+--
+-- Based on
+-- https://github.blog/changelog/2021-03-31-authentication-token-format-updates-are-generally-available/
+validateAuthToken :: T.Text -> Maybe T.Text
+validateAuthToken token
+  | validPrefix && validChars = Just token
+  | otherwise = Nothing
+  where
+  validChars = T.all isValidChar token
+  isValidChar c = isAsciiLower c || isAsciiUpper c || isDigit c || c == '_'
+
+  validPrefix = any (`T.isPrefixOf` token) prefixes
+  prefixes = ["ghp_" , "gho_" , "ghu_" , "ghs_" , "ghr_"]
