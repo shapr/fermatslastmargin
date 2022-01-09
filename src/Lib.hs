@@ -481,8 +481,7 @@ getFriendRepos username token friendsdir mgmt = do
 checkGitConfig :: String -> IO ExitCode
 checkGitConfig value = do -- value should be either "user.name" or "user.email"
   (Nothing, Nothing, Nothing, pidc) <- createProcess (proc "git" ["config",value]) { cwd = Just ".", std_in = NoStream, std_out = NoStream, std_err = NoStream, close_fds = True}
-  exitCode <- waitForProcess pidc
-  return exitCode
+  waitForProcess pidc
 
 -- looks like names imported from Lib.Github are not automatically exported? who knew?!
 

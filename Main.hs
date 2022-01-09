@@ -202,7 +202,7 @@ main = do
       createRes <- liftIO $ loadValueFromFile githubSpec configFile >>= createDR . T.unpack . oauth
       -- clone the repo from github into fullUserDir
       case createRes of
-        Left e -> html $ "There's a problem: " <> (TL.pack $ show e)
+        Left e -> html $ "There's a problem: " <> TL.pack (show e)
         Right r -> do
           _ <- liftIO $ cloneRepo fullUserDir (oauthedremote . unstupid $ (snd . pnRepo) r)
           redirect "/"
@@ -231,7 +231,7 @@ main = do
                 { uid = uid updatedpaper,
                   author = author updatedpaper,
                   published = published updatedpaper,
-                  notes = (notes p) -- don't modify the notes, copy from the previous Paper value
+                  notes = notes p -- don't modify the notes, copy from the previous Paper value
                 }
           liftIO $ putStrLn "paper written successfully"
           redirect "/"
